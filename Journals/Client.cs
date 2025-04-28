@@ -1,10 +1,7 @@
-﻿using EliteAPI.Abstractions;
-using EliteAPI.Events.Status.Ship.Events;
-using ForceFeedbackSharpDx;
+﻿using ForceFeedbackSharpDx;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using SharpDX.DirectInput;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,13 +10,12 @@ namespace Journals
 {
     public class Client
     {
-        private IEliteDangerousApi eliteDangerousApi;
+        private EliteAPI.Abstractions.IEliteDangerousApi eliteAPI;
+        //private IShip ship;
         private ILogger logger;
         private IHost host;
 
         private readonly List<DeviceEvents> Devices = new List<DeviceEvents>();
-
-        public string StatusText { get; set; } = "Not Initialized";
 
         public async Task Initialize(Settings settings)
         {
@@ -35,7 +31,8 @@ namespace Journals
                  .Build();
 
             // Get the services from the Host object
-            eliteDangerousApi = host.Services.GetRequiredService<IEliteDangerousApi>();
+            eliteAPI = host.Services.GetService<EliteAPI.Abstractions.IEliteDangerousApi>();
+            //ship = host.Services.GetService<EliteAPI.Status.Ship.Abstractions.IShip>();
             logger = host.Services.GetRequiredService<ILogger<Client>>();
 
             foreach (var device in settings.Devices)
@@ -62,58 +59,87 @@ namespace Journals
             }
 
             // Start the api
-            await eliteDangerousApi.StartAsync().ConfigureAwait(false);
+            await eliteAPI.StartAsync().ConfigureAwait(false);
 
-            eliteDangerousApi.Events.OnAny(e => Events_AllEvent(this, e));
+            eliteAPI.Events.OnAny( e => Events_AllEvent(e));
 
-            eliteDangerousApi.Events.On<DockedStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<LandedStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<GearStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<ShieldsStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<SupercruiseStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<FlightAssistStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<HardpointsStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<WingingStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<LightsStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<CargoScoopStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<SilentRunningStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<ScoopingStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<SrvHandbrakeStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<SrvTurretStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<SrvNearShipStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<SrvDriveAssistStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<MassLockedStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<FsdChargingStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<FsdCooldownStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<LowFuelStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<OverheatingStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<HasLatLongStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<InDangerStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<InInterdictionStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<InMothershipStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<InFighterStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<InSrvStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<AnalysisModeStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<NightVisionStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<AltitudeFromAverageRadiusStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<FsdJumpStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
-            eliteDangerousApi.Events.On<SrvHighBeamStatusEvent>(e => FindEffect($"Status.{e.Event}:{e.Value}"));
+            eliteAPI.Events.On<EliteAPI.Status.Ship.Events.DockedStatusEvent>(e => FindEffect($"Status.Docked:{e.Value}"));
+            eliteAPI.Events.On<EliteAPI.Status.Ship.Events.LandedStatusEvent>(e => FindEffect($"Status.Landed:{e.Value}"));
 
-            StatusText = $"{Devices.FirstOrDefault()?.Device?.StatusText ?? "Not Connected"}";
+            eliteAPI.Events.On<EliteAPI.Status.Ship.StatusEvent>(e => ShipStatusEvent(e));
+
+            //ship.Gear.OnChange += (obj, eventArgs) => FindEffect($"Status.Gear:{eventArgs}");
+            //ship.Shields.OnChange += (obj, eventArgs) => FindEffect($"Status.Shields:{eventArgs}");
+            //ship.Supercruise.OnChange += (obj, eventArgs) => FindEffect($"Status.Supercruise:{eventArgs}");
+            //ship.FlightAssist.OnChange += (obj, eventArgs) => FindEffect($"Status.FlightAssist:{eventArgs}");
+            //ship.Hardpoints.OnChange += (obj, eventArgs) => FindEffect($"Status.Hardpoints:{eventArgs}");
+            //ship.Winging.OnChange += (obj, eventArgs) => FindEffect($"Status.Winging:{eventArgs}");
+            //ship.Lights.OnChange += (obj, eventArgs) => FindEffect($"Status.Lights:{eventArgs}");
+            //ship.CargoScoop.OnChange += (obj, eventArgs) => FindEffect($"Status.CargoScoop:{eventArgs}");
+            //ship.SilentRunning.OnChange += (obj, eventArgs) => FindEffect($"Status.SilentRunning:{eventArgs}");
+            //ship.Scooping.OnChange += (obj, eventArgs) => FindEffect($"Status.Scooping:{eventArgs}");
+            //ship.SrvHandbreak.OnChange += (obj, eventArgs) => FindEffect($"Status.SrvHandbreak:{eventArgs}");
+            //ship.SrvTurrent.OnChange += (obj, eventArgs) => FindEffect($"Status.SrvTurrent:{eventArgs}");
+            //ship.SrvNearShip.OnChange += (obj, eventArgs) => FindEffect($"Status.SrvNearShip:{eventArgs}");
+            //ship.SrvDriveAssist.OnChange += (obj, eventArgs) => FindEffect($"Status.SrvDriveAssist:{eventArgs}");
+            //ship.MassLocked.OnChange += (obj, eventArgs) => FindEffect($"Status.MassLocked:{eventArgs}");
+            //ship.FsdCharging.OnChange += (obj, eventArgs) => FindEffect($"Status.FsdCharging:{eventArgs}");
+            //ship.FsdCooldown.OnChange += (obj, eventArgs) => FindEffect($"Status.FsdCooldown:{eventArgs}");
+            //ship.LowFuel.OnChange += (obj, eventArgs) => FindEffect($"Status.LowFuel:{eventArgs}");
+            //ship.Overheating.OnChange += (obj, eventArgs) => FindEffect($"Status.Overheating:{eventArgs}");
+            //ship.HasLatLong.OnChange += (obj, eventArgs) => FindEffect($"Status.HasLatLong:{eventArgs}");
+            //ship.InDanger.OnChange += (obj, eventArgs) => FindEffect($"Status.InDanger:{eventArgs}");
+            //ship.InInterdiction.OnChange += (obj, eventArgs) => FindEffect($"Status.InInterdiction:{eventArgs}");
+            //ship.InMothership.OnChange += (obj, eventArgs) => FindEffect($"Status.InMothership:{eventArgs}");
+            //ship.InFighter.OnChange += (obj, eventArgs) => FindEffect($"Status.InFighter:{eventArgs}");
+            //ship.InSrv.OnChange += (obj, eventArgs) => FindEffect($"Status.InSrv:{eventArgs}");
+            //ship.AnalysisMode.OnChange += (obj, eventArgs) => FindEffect($"Status.AnalysisMode:{eventArgs}");
+            //ship.NightVision.OnChange += (obj, eventArgs) => FindEffect($"Status.NightVision:{eventArgs}");
+            //ship.AltitudeFromAverageRadius.OnChange += (obj, eventArgs) => FindEffect($"Status.AltitudeFromAverageRadius:{eventArgs}");
+            //ship.FsdJump.OnChange += (obj, eventArgs) => FindEffect($"Status.FsdJump:{eventArgs}");
+            //ship.SrvHighBeam.OnChange += (obj, eventArgs) => FindEffect($"Status.SrvHighBeam:{eventArgs}");
+
+
+            //ship.Docked.OnChange += (obj, eventArgs) => FindEffect($"Status.Docked:{eventArgs}");
+            //ship.Landed.OnChange += (obj, eventArgs) => FindEffect($"Status.Landed:{eventArgs}");
+            //ship.Gear.OnChange += (obj, eventArgs) => FindEffect($"Status.Gear:{eventArgs}");
+            //ship.Shields.OnChange += (obj, eventArgs) => FindEffect($"Status.Shields:{eventArgs}");
+            //ship.Supercruise.OnChange += (obj, eventArgs) => FindEffect($"Status.Supercruise:{eventArgs}");
+            //ship.FlightAssist.OnChange += (obj, eventArgs) => FindEffect($"Status.FlightAssist:{eventArgs}");
+            //ship.Hardpoints.OnChange += (obj, eventArgs) => FindEffect($"Status.Hardpoints:{eventArgs}");
+            //ship.Winging.OnChange += (obj, eventArgs) => FindEffect($"Status.Winging:{eventArgs}");
+            //ship.Lights.OnChange += (obj, eventArgs) => FindEffect($"Status.Lights:{eventArgs}");
+            //ship.CargoScoop.OnChange += (obj, eventArgs) => FindEffect($"Status.CargoScoop:{eventArgs}");
+            //ship.SilentRunning.OnChange += (obj, eventArgs) => FindEffect($"Status.SilentRunning:{eventArgs}");
+            //ship.Scooping.OnChange += (obj, eventArgs) => FindEffect($"Status.Scooping:{eventArgs}");
+            //ship.SrvHandbreak.OnChange += (obj, eventArgs) => FindEffect($"Status.SrvHandbreak:{eventArgs}");
+            //ship.SrvTurrent.OnChange += (obj, eventArgs) => FindEffect($"Status.SrvTurrent:{eventArgs}");
+            //ship.SrvNearShip.OnChange += (obj, eventArgs) => FindEffect($"Status.SrvNearShip:{eventArgs}");
+            //ship.SrvDriveAssist.OnChange += (obj, eventArgs) => FindEffect($"Status.SrvDriveAssist:{eventArgs}");
+            //ship.MassLocked.OnChange += (obj, eventArgs) => FindEffect($"Status.MassLocked:{eventArgs}");
+            //ship.FsdCharging.OnChange += (obj, eventArgs) => FindEffect($"Status.FsdCharging:{eventArgs}");
+            //ship.FsdCooldown.OnChange += (obj, eventArgs) => FindEffect($"Status.FsdCooldown:{eventArgs}");
+            //ship.LowFuel.OnChange += (obj, eventArgs) => FindEffect($"Status.LowFuel:{eventArgs}");
+            //ship.Overheating.OnChange += (obj, eventArgs) => FindEffect($"Status.Overheating:{eventArgs}");
+            //ship.HasLatLong.OnChange += (obj, eventArgs) => FindEffect($"Status.HasLatLong:{eventArgs}");
+            //ship.InDanger.OnChange += (obj, eventArgs) => FindEffect($"Status.InDanger:{eventArgs}");
+            //ship.InInterdiction.OnChange += (obj, eventArgs) => FindEffect($"Status.InInterdiction:{eventArgs}");
+            //ship.InMothership.OnChange += (obj, eventArgs) => FindEffect($"Status.InMothership:{eventArgs}");
+            //ship.InFighter.OnChange += (obj, eventArgs) => FindEffect($"Status.InFighter:{eventArgs}");
+            //ship.InSrv.OnChange += (obj, eventArgs) => FindEffect($"Status.InSrv:{eventArgs}");
+            //ship.AnalysisMode.OnChange += (obj, eventArgs) => FindEffect($"Status.AnalysisMode:{eventArgs}");
+            //ship.NightVision.OnChange += (obj, eventArgs) => FindEffect($"Status.NightVision:{eventArgs}");
+            //ship.AltitudeFromAverageRadius.OnChange += (obj, eventArgs) => FindEffect($"Status.AltitudeFromAverageRadius:{eventArgs}");
+            //ship.FsdJump.OnChange += (obj, eventArgs) => FindEffect($"Status.FsdJump:{eventArgs}");
+            //ship.SrvHighBeam.OnChange += (obj, eventArgs) => FindEffect($"Status.SrvHighBeam:{eventArgs}");
         }
 
-        public void TestEffect()
+        private void ShipStatusEvent(dynamic e)
         {
-            var device = Devices.FirstOrDefault();
-            var effect = device?.EventSettings.FirstOrDefault();
-
-            if (device != null && effect != null && effect.HasValue)
-            {
-                var result = device.Device?.PlayFileEffect(effect.Value.Value.ForceFile, effect.Value.Value.Duration);
-            }
+            logger.LogDebug($"Event {e}");
         }
 
-        private void Events_AllEvent(object sender, dynamic e)
+        private void Events_AllEvent(dynamic e)
         {
             var eventKey = e.ToString();
             FindEffect(eventKey);
