@@ -5,8 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="EliteAPI" Version="3.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.0" />
+    <PackageReference Include="EliteAPI" Version="3.3.10" />
   </ItemGroup>
 
   <ItemGroup>
