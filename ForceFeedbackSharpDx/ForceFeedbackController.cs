@@ -1,12 +1,10 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using SharpDX;
+using SharpDX.DirectInput;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading.Tasks;
-using SharpDX.DirectInput;
-using System.Linq;
-using SharpDX;
-using Microsoft.Extensions.Logging;
 
 namespace ForceFeedbackSharpDx
 {
