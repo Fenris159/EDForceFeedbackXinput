@@ -149,7 +149,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
     <Content Include="FFUtils\csFeedback.exe">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -180,6 +179,7 @@
     <Content Include="Forces\VibrateSide.ffe">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <None Include="App.config" />
     <None Include="FFUtils\pid1_01.pdf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
