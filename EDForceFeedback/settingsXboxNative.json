@@ -1,0 +1,58 @@
+{
+  "KnownWorkingDevices": {
+    "NOTES": "Xbox controllers are now auto-detected via native XInput. No settings required.",
+    "Xbox One/Elite (native XInput)": "Auto-detected at UserIndex 0-3. No driver needed.",
+    "MSFF2": "ProductGuid = 001b045e-0000-0000-0000-504944564944  ProductName = 'SideWinder Force Feedback 2 Joystick'",
+    "Saitek Cyborg 3D Force Stick": "ProductGuid = ff1206a3-0000-0000-0000-504944564944"
+  },
+  "Devices": [
+    {
+      "ProductGuid": "001b045e-0000-0000-0000-504944564944",
+      "ProductName": "SideWinder Force Feedback 2 Joystick",
+      "AutoCenter": true,
+      "ForceFeedbackGain": 10000,
+      "StatusEvents": [
+        {"Event": "Status.Docked:True", "ForceFile": "Dock.ffe", "Duration": 2000},
+        {"Event": "Status.Docked:False", "ForceFile": "Dock.ffe", "Duration": 2000},
+        {"Event": "Status.Gear:True", "ForceFile": "Gear.ffe", "Duration": 3000},
+        {"Event": "Status.Gear:False", "ForceFile": "Gear.ffe", "Duration": 3000},
+        {"Event": "Status.Lights:True", "ForceFile": "Vibrate.ffe", "Duration": 250},
+        {"Event": "Status.Lights:False", "ForceFile": "Vibrate.ffe", "Duration": 250},
+        {"Event": "Status.Hardpoints:True", "ForceFile": "Hardpoints.ffe", "Duration": 2000},
+        {"Event": "Status.Hardpoints:False", "ForceFile": "Hardpoints.ffe", "Duration": 2000},
+        {"Event": "Status.Landed:True", "ForceFile": "Hardpoints.ffe", "Duration": 1500},
+        {"Event": "Status.Landed:False", "ForceFile": "Hardpoints.ffe", "Duration": 1500},
+        {"Event": "Status.LowFuel:True", "ForceFile": "VibrateSide.ffe", "Duration": 500},
+        {"Event": "Status.LowFuel:False", "ForceFile": "VibrateSide.ffe", "Duration": 500},
+        {"Event": "Status.CargoScoop:True", "ForceFile": "Cargo.ffe", "Duration": 2000},
+        {"Event": "Status.CargoScoop:False", "ForceFile": "Cargo.ffe", "Duration": 2000},
+        {"Event": "Status.Overheating:True", "ForceFile": "VibrateSide.ffe", "Duration": 250},
+        {"Event": "Status.Overheating:False", "ForceFile": "VibrateSide.ffe", "Duration": 250}
+      ]
+    },
+    {
+      "XInput": true,
+      "UserIndex": 0,
+      "RumbleGain": 1.0,
+      "StatusEvents": [
+        {"Event": "Status.Docked:True", "ForceFile": "Dock.ffe", "Duration": 2000},
+        {"Event": "Status.Docked:False", "ForceFile": "Dock.ffe", "Duration": 2000},
+        {"Event": "Status.Gear:True", "ForceFile": "Gear.ffe", "Duration": 3000},
+        {"Event": "Status.Gear:False", "ForceFile": "Gear.ffe", "Duration": 3000},
+        {"Event": "Status.HullDamage", "ForceFile": "Vibrate.ffe", "Duration": 400, "LeftMotor": 0.9, "RightMotor": 0.7},
+        {"Event": "Status.Lights:True", "ForceFile": "Vibrate.ffe", "Duration": 250},
+        {"Event": "Status.Lights:False", "ForceFile": "Vibrate.ffe", "Duration": 250},
+        {"Event": "Status.Hardpoints:True", "ForceFile": "Hardpoints.ffe", "Duration": 2000},
+        {"Event": "Status.Hardpoints:False", "ForceFile": "Hardpoints.ffe", "Duration": 2000},
+        {"Event": "Status.Landed:True", "ForceFile": "Hardpoints.ffe", "Duration": 1500},
+        {"Event": "Status.Landed:False", "ForceFile": "Hardpoints.ffe", "Duration": 1500},
+        {"Event": "Status.LowFuel:True", "ForceFile": "VibrateSide.ffe", "Duration": 500},
+        {"Event": "Status.LowFuel:False", "ForceFile": "VibrateSide.ffe", "Duration": 500},
+        {"Event": "Status.CargoScoop:True", "ForceFile": "Cargo.ffe", "Duration": 2000},
+        {"Event": "Status.CargoScoop:False", "ForceFile": "Cargo.ffe", "Duration": 2000},
+        {"Event": "Status.Overheating:True", "ForceFile": "VibrateSide.ffe", "Duration": 250},
+        {"Event": "Status.Overheating:False", "ForceFile": "VibrateSide.ffe", "Duration": 250}
+      ]
+    }
+  ]
+}

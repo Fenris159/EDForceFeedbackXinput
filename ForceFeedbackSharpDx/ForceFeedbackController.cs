@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using SharpDX;
 using SharpDX.DirectInput;
 using System;
@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ForceFeedbackSharpDx
 {
-    public class ForceFeedbackController : IDisposable
+    public class ForceFeedbackController : IForceFeedbackDevice
     {
         private const uint WINDOW_HANDLE_ERROR = 0x80070006;
 
@@ -19,6 +19,8 @@ namespace ForceFeedbackSharpDx
         public ILogger Logger { get; set; }
 
         public String StatusText;
+
+        public string GetName() => StatusText ?? "Force Feedback Device";
 
         public bool Initialize(
             string productGuid,
@@ -243,8 +245,7 @@ namespace ForceFeedbackSharpDx
         /// </summary>
         /// <param name="name">Effect file name</param>
         /// <param name="duration">Zero and below will play until stopped.  Above zero will play for that many milliseconds.  Default: 250.</param>
-        /// <returns>The effects being played as a List<Effect> or null if the effect file was not found.</returns>
-        public List<Effect> PlayFileEffect(string name, int duration = 250)
+        public void PlayFileEffect(string name, int duration = 250, double? leftMotorOverride = null, double? rightMotorOverride = null)
         {
             try
             {
@@ -272,8 +273,6 @@ namespace ForceFeedbackSharpDx
                     else if (t.IsFaulted) Logger?.LogDebug($"Effect {name} Exception {t.Exception.InnerException?.Message}");
                     else Logger?.LogDebug($"Effect {name} complete");
                 });
-
-                return forceEffects;
             }
             catch(KeyNotFoundException ex)
             {
@@ -283,8 +282,6 @@ namespace ForceFeedbackSharpDx
             {
                 Logger?.LogError("PlayFileEffect Exception", ex);
             }
-
-            return null;
         }
 
         public void Dispose()
