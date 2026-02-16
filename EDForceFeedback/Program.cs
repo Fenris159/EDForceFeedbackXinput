@@ -67,9 +67,19 @@ namespace EDForceFeedback
                 return;
             }
 
+            // Prefer GameInput rumble, then HID, then XInput
+            ForceFeedbackGameInput.XInputGameInputBackend.RegisterAsPreferred();
+
             var client = new Client();
 
             await client.Initialize(settings).ConfigureAwait(false);
+
+            void ReleaseDevices()
+            {
+                try { client?.Dispose(); } catch { }
+            }
+            AppDomain.CurrentDomain.ProcessExit += (s, e) => ReleaseDevices();
+            Console.CancelKeyPress += (s, e) => ReleaseDevices();
 
             while (true)
                 await Task.Delay(5000).ConfigureAwait(false);

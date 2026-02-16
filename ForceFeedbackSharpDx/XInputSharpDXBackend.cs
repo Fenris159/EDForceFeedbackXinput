@@ -13,6 +13,10 @@ namespace ForceFeedbackSharpDx
 
         public bool IsConnected => _controller.IsConnected;
 
+        public string BackendName => "SharpDX XInput";
+
+        public bool? ExclusiveAccessAcquired => null;
+
         public void SetVibration(ushort leftMotor, ushort rightMotor)
         {
             _controller.SetVibration(new Vibration { LeftMotorSpeed = leftMotor, RightMotorSpeed = rightMotor });

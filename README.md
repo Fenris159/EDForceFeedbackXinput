@@ -23,6 +23,8 @@ EDForceFeedback.exe runs during an Elite Dangerous session. It reads the game's 
 3. Extract the zip(s) to a folder of your choice (e.g. your Desktop or a dedicated game tools folder).
 4. Run `EDForceFeedback.exe` or `TestForceFeedback.exe` from the extracted folder.
 
+5. **Xbox controller rumble not working?** If your Xbox controller is connected but rumble doesn't respond, run `GameInputRedist.msi` from the `redist` folder (if included in the release). This installs or updates the Microsoft GameInput runtime required for Xbox rumble. You may need to run it once and then restart the program.
+
 Both programs include `settings.json` and the Settings Editor.
 
 ## Usage
@@ -49,22 +51,37 @@ You can also edit `settings.json` manually. See [Configuration](#configuration) 
 
 ## Xbox Controller Support (XInput)
 
-Xbox controllers use native Windows XInput – no custom drivers needed.
+Xbox controllers use Microsoft.GameInput (preferred), raw HID, or SharpDX XInput – no custom drivers needed.
 
-**Windows.Gaming.Input (Windows 10+):** On Windows 10 and later, rumble uses the
-[Windows.Gaming.Input](https://learn.microsoft.com/en-us/uwp/api/windows.gaming.input.gamepad) WinRT API instead of classic XInput.
+**Microsoft.GameInput (preferred):** Uses the native GameInput API via a C++/CLI wrapper. Rumbles **all** connected gamepad devices. Requires the [GameInput Redistributable](https://aka.ms/gameinput) to be installed (see [Deployment](#deployment)).
 
-Elite Dangerous locks controllers via DirectInput while running, which blocks traditional XInput rumble.
+**Raw HID (fallback):** When an Xbox controller exposes a HID interface, the program uses raw HID output reports via HidSharp. This **bypasses XInput and DirectInput entirely**, allowing background rumble injection while Elite Dangerous has the controller via DirectInput. The controller is not claimed through any high-level input stack.
 
-Windows.Gaming.Input bypasses DirectInput, so rumble works when the game has the controller locked. **No virtualized controllers or workarounds required.**
-
-On older Windows, the program falls back to SharpDX XInput; rumble may not work if the game has exclusive access.
+**SharpDX XInput (last resort):** If GameInput and raw HID are unavailable, the program falls back to SharpDX XInput. XInput shares the controller with other applications but may be blocked when Elite has exclusive DirectInput access.
 
 - **Auto-detection**: Controllers at UserIndex 0–3 are detected automatically.
 - **Config**: Add `"XInput": true` and `"UserIndex": -1` (auto) or `0`–`3` in `settings.json`.
 - **ForceFileRumble**: Per-effect rumble strength (e.g. `Status_Gear_True.ffe` → Left/Right 0.0–1.0).
 - **Per-event overrides**: `LeftMotor`, `RightMotor`, `Pulse`, `Pulse_Amount` in StatusEvents.
 - **Event naming**: `Status.Scooping:True` → `Status_Scooping_True.ffe` (replace `.` and `:` with `_`).
+
+### Direct GameInput usage (C#)
+
+If using the `GameInputWrapper` project directly:
+
+```csharp
+using GameInputWrapper;
+
+var rumble = new GameInputRumbleManager();
+if (rumble.Initialize())
+{
+    rumble.SetRumble(0.6f, 0.4f);  // low 60%, high 40% (indefinite until stopped)
+    // ... after 300ms ...
+    rumble.SetRumble(0f, 0f);      // stop
+}
+```
+
+For timed rumble (e.g. 300ms), call `SetRumble(0.6f, 0.4f)` then `SetRumble(0, 0)` after the desired delay. The ForceFeedbackSharpDx integration handles timing automatically.
 
 ## Configuration
 
@@ -147,6 +164,25 @@ For developers who want to build from the repository:
 Packages are stored in `./packages` (see `nuget.config`).
 
 **EliteAPI**: Uses EliteAPI v5.0.8. DLLs are in `lib/` from [EliteAPI releases](https://github.com/Somfic/EliteAPI/releases); no NuGet restore needed for EliteAPI.
+
+**GameInput**: Xbox rumble via Microsoft.GameInput uses the native package `Microsoft.GameInput` (NuGet). The C++/CLI wrapper project `GameInputWrapper` targets x64 and .NET Framework 4.8. Build the solution with `Debug|x64` or `Release|x64` when using GameInput.
+
+### Deployment
+
+**GameInput Redistributable:** For Xbox rumble via GameInput, end users must have the Microsoft GameInput runtime installed. When building in **Release** configuration, the latest `GameInputRedist.msi` from the NuGet package is automatically copied to `EDForceFeedback\bin\Release\net48\redist\`.
+
+**You may need to run this installer** to update to the latest GameInput runtime for GameInput rumble to work. If the runtime is missing or outdated, the app will fall back to raw HID or XInput for rumble.
+
+**Options for end users:**
+
+1. **Option A (recommended):** Include the `redist\GameInputRedist.msi` folder in your distribution. Instruct users to run `GameInputRedist.msi` once if Xbox rumble via GameInput does not work (e.g. controller not detected, no rumble response).
+2. **Option B:** Direct users to install it from [aka.ms/gameinput](https://aka.ms/gameinput).
+
+**Files to deploy (when using GameInput):**
+
+- `EDForceFeedback.exe` (or `TestForceFeedback.exe`), `settings.json`, `Forces\`, etc.
+- `GameInputWrapper.dll` (C++/CLI mixed assembly; built from the GameInputWrapper project)
+- `redist\GameInputRedist.msi` – installer; users may need to run it to enable or update the GameInput runtime
 
 ---
 

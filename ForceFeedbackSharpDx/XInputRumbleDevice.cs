@@ -8,7 +8,8 @@ namespace ForceFeedbackSharpDx
 {
     /// <summary>
     /// XInput rumble device for Xbox controllers (Xbox One, Xbox Elite Series 1/2, etc.).
-    /// Uses Windows.Gaming.Input on Windows 10+ when available; otherwise SharpDX XInput.
+    /// Prefers raw HID output reports (HidSharp) to bypass XInput/DirectInput—allows background rumble
+    /// while Elite Dangerous has the controller via DirectInput. Falls back to SharpDX XInput if HID unavailable.
     /// Maps .ffe effect names to rumble patterns.
     /// </summary>
     public class XInputRumbleDevice : IForceFeedbackDevice
@@ -50,19 +51,20 @@ namespace ForceFeedbackSharpDx
             _logger = logger;
         }
 
-        /// <summary>Creates backend: Windows.Gaming.Input on Windows 10+ when available, else SharpDX XInput.</summary>
+        /// <summary>Optional resolver for custom backends (e.g. GameInput). Set before creating XInputRumbleDevice.</summary>
+        public static Func<int, IXInputRumbleBackend> BackendResolver { get; set; }
+
+        /// <summary>Creates backend: GameInput (if resolver set), raw HID, or SharpDX XInput (fallback).</summary>
         private static IXInputRumbleBackend CreateBackend(int userIndex)
         {
-            try
-            {
-                var winBackend = XInputWinGamingBackend.TryCreate(userIndex);
-                if (winBackend != null && winBackend.IsConnected)
-                    return winBackend;
-            }
-            catch
-            {
-                // Windows.Gaming.Input unavailable (older Windows, WinRT load failure, etc.) - use SharpDX
-            }
+            var custom = BackendResolver?.Invoke(userIndex);
+            if (custom != null && custom.IsConnected)
+                return custom;
+            (custom as IDisposable)?.Dispose();
+            var hidBackend = XInputHidBackend.TryCreate(userIndex);
+            if (hidBackend != null && hidBackend.IsConnected)
+                return hidBackend;
+            (hidBackend as IDisposable)?.Dispose();
             return new XInputSharpDXBackend(userIndex);
         }
 
@@ -75,6 +77,12 @@ namespace ForceFeedbackSharpDx
             _cachedName = $"Xbox Controller (Index {_userIndexInt})";
             return _cachedName;
         }
+
+        /// <summary>Which rumble backend is in use (Microsoft.GameInput, Raw HID, or SharpDX XInput).</summary>
+        public string GetBackendName() => _backend?.BackendName ?? "Unknown";
+
+        /// <summary>For GameInput: whether AcquireExclusiveRawDeviceAccess succeeded. Null for other backends.</summary>
+        public bool? GetExclusiveAccessAcquired() => _backend?.ExclusiveAccessAcquired;
 
         private const int PulseGapMs = 80;
 
@@ -328,6 +336,8 @@ namespace ForceFeedbackSharpDx
             try
             {
                 _backend?.SetVibration(0, 0);
+                if (_backend is IDisposable disposable)
+                    disposable.Dispose();
             }
             catch { }
             _disposed = true;

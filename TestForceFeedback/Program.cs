@@ -71,11 +71,21 @@ namespace TestForceFeedback
                 return;
             }
 
+            // Prefer GameInput rumble, then HID, then XInput
+            ForceFeedbackGameInput.XInputGameInputBackend.RegisterAsPreferred();
+
             // Use EliteAPI v5 with null dirs = no file watchers; we drive events via SimulateEvent.
             var testApi = new EliteAPI.EliteDangerousApi(null, null);
             var client = new Client();
 
             client.Initialize(settings, testApi).GetAwaiter().GetResult();
+
+            void ReleaseDevices()
+            {
+                try { client?.Dispose(); } catch { }
+            }
+            AppDomain.CurrentDomain.ProcessExit += (s, e) => ReleaseDevices();
+            Console.CancelKeyPress += (s, e) => { ReleaseDevices(); };
 
             Console.WriteLine("Event simulation (no game). Press a number key to fire an event, 0 to quit.");
             while (true)
@@ -94,7 +104,11 @@ namespace TestForceFeedback
                 Console.WriteLine("a: Overheating (false)");
 
                 var key = Console.ReadKey();
-                if (key.KeyChar == '0') break;
+                if (key.KeyChar == '0')
+                {
+                    ReleaseDevices();
+                    break;
+                }
                 if (key.KeyChar == 's' || key.KeyChar == 'S')
                 {
                     client.StopAllRumble();

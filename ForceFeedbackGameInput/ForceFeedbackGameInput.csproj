@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <RootNamespace>ForceFeedbackGameInput</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ForceFeedbackSharpDx\ForceFeedbackSharpDx.csproj" />
+    <ProjectReference Include="..\GameInputWrapper\GameInputWrapper.vcxproj" />
+  </ItemGroup>
+</Project>

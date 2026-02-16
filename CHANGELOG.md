@@ -11,7 +11,7 @@ First release of the fork. Changes since the original [EDForceFeedback](https://
 ### Added
 
 - **Xbox controller rumble (XInput)** – Native support for Xbox One, Elite Series 1/2, and Series X/S controllers. No custom drivers required.
-- **Windows.Gaming.Input** – On Windows 10+, rumble uses the WinRT API to bypass DirectInput. Controllers still rumble when Elite Dangerous has them locked.
+- **Raw HID (HidSharp)** – Prefers raw HID output reports to bypass XInput/DirectInput; enables background rumble while Elite has the controller. Falls back to SharpDX XInput when HID is unavailable.
 - **EDForceFeedbackSettingsEditor** – GUI editor for rumble strength, duration, and pulse settings. Edits `settings.json` in place.
 - **TestForceFeedback** – Test harness to verify rumble without running Elite Dangerous. Simulates events via key presses.
 - **Status.json handling** – Reads Elite's Status.json and emits events for flag changes (Gear, Hardpoints, Overheating, etc.).

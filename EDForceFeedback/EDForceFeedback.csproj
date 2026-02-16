@@ -3,6 +3,8 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net48</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <UseWindowsForms>true</UseWindowsForms>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <RootNamespace>EDForceFeedback</RootNamespace>
@@ -25,6 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ForceFeedbackGameInput\ForceFeedbackGameInput.csproj" />
     <ProjectReference Include="..\Journals\Journals.csproj" />
   </ItemGroup>
 
@@ -40,5 +43,15 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.3" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
+
+  <!-- Copy GameInputRedist.msi to output redist folder (Release builds) -->
+  <Target Name="CopyGameInputRedist" AfterTargets="Build" Condition="'$(Configuration)'=='Release'">
+    <PropertyGroup>
+      <_GameInputRedistSource>$(MSBuildThisFileDirectory)..\packages\microsoft.gameinput\3.2.138\redist\GameInputRedist.msi</_GameInputRedistSource>
+      <_GameInputRedistDest>$(OutputPath)redist\GameInputRedist.msi</_GameInputRedistDest>
+    </PropertyGroup>
+    <MakeDir Directories="$(OutputPath)redist" Condition="!Exists('$(OutputPath)redist')" />
+    <Copy SourceFiles="$(_GameInputRedistSource)" DestinationFiles="$(_GameInputRedistDest)" Condition="Exists('$(_GameInputRedistSource)')" SkipUnchangedFiles="true" />
+  </Target>
 
 </Project>

@@ -6,6 +6,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>EDForceFeedbackSettingsEditor</AssemblyName>
     <RootNamespace>EDForceFeedbackSettingsEditor</RootNamespace>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <ItemGroup>

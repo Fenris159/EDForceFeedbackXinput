@@ -9,9 +9,10 @@ using System.Threading.Tasks;
 
 namespace Journals
 {
-    public class Client
+    public class Client : IDisposable
     {
         private EliteAPI.EliteDangerousApi eliteAPI;
+        private bool _disposed;
         private ILogger logger;
 
         private readonly List<DeviceEvents> Devices = new List<DeviceEvents>();
@@ -313,7 +314,11 @@ namespace Journals
 
                 Devices.Add(deviceEvents);
                 xinputIndicesAdded.Add(userIndex);
-                logger.LogInformation("Detected Xbox controller at index {0}: {1}", userIndex, xinputDevice.GetName());
+                var exclusiveAccess = xinputDevice.GetExclusiveAccessAcquired();
+                var exclusiveStr = exclusiveAccess.HasValue
+                    ? $" | AcquireExclusiveRawDeviceAccess: {exclusiveAccess.Value}"
+                    : "";
+                logger.LogInformation("Detected Xbox controller at index {0}: {1} (via {2}){3}", userIndex, xinputDevice.GetName(), xinputDevice.GetBackendName(), exclusiveStr);
                 // Startup rumble test - if you feel this, the correct controller is receiving rumble
                 xinputDevice.PlayFileEffect("Vibrate.ffe", 400);
             }
@@ -335,6 +340,19 @@ namespace Journals
                     device.Device?.PlayFileEffect(eventConfig.ForceFile, eventConfig.Duration, eventConfig.LeftMotor, eventConfig.RightMotor, eventConfig.Pulse, eventConfig.PulseAmount);
                 }
             }
+        }
+
+        /// <summary>Releases all devices (raw HID, SharpDX XInput, DirectInput). Stops rumble and frees resources.</summary>
+        public void Dispose()
+        {
+            if (_disposed) return;
+            foreach (var deviceEvents in Devices)
+            {
+                try { deviceEvents.Device?.Dispose(); } catch { }
+            }
+            Devices.Clear();
+            _disposed = true;
+            GC.SuppressFinalize(this);
         }
     }
 }
