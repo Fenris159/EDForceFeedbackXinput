@@ -41,7 +41,7 @@ namespace EDForceFeedback
                     Console.WriteLine();
                     Console.WriteLine("Usage:");
                     Console.WriteLine("EDForceFeedback.exe -h                   Output this help.");
-                    Console.WriteLine(@"EDForceFeedback.exe c:\settings.json    Override the default settings file and use this instead.");
+                    Console.WriteLine(@"EDForceFeedback.exe <path>             Override the default settings file (e.g. C:\path\to\settings.json).");
                     Console.WriteLine($"EDForceFeedback.exe                     Will default to the settings file {Directory.GetCurrentDirectory()}\\settings.json");
                     return;
                 }

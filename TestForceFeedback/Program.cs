@@ -48,7 +48,7 @@ namespace TestForceFeedback
                     Console.WriteLine();
                     Console.WriteLine("Usage:");
                     Console.WriteLine("  TestForceFeedback.exe -h                   Output this help.");
-                    Console.WriteLine(@"  TestForceFeedback.exe c:\settings.json    Override the default settings file.");
+                    Console.WriteLine(@"  TestForceFeedback.exe <path>             Override the default settings file (e.g. C:\path\to\settings.json).");
                     Console.WriteLine($"  TestForceFeedback.exe                     Default settings: {Directory.GetCurrentDirectory()}\\settings.json");
                     return;
                 }

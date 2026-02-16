@@ -168,7 +168,7 @@ namespace EDForceFeedbackSettingsEditor
         {
             if (_previewUnavailable)
             {
-                MessageBox.Show("Preview is unavailable. Run the editor from EDForceFeedbackSettingsEditor\\bin\\Debug\\net48 (or ensure all dependencies are present).", "Preview", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Preview is unavailable. Run the editor from the same folder as the executable (or ensure all dependencies are present).", "Preview", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
             if (_rumbleDevice == null || !_rumbleDevice.IsConnected)
