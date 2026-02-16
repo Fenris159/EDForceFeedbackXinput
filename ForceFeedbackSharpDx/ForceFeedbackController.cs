@@ -245,11 +245,56 @@ namespace ForceFeedbackSharpDx
         /// </summary>
         /// <param name="name">Effect file name</param>
         /// <param name="duration">Zero and below will play until stopped.  Above zero will play for that many milliseconds.  Default: 250.</param>
-        public void PlayFileEffect(string name, int duration = 250, double? leftMotorOverride = null, double? rightMotorOverride = null)
+        /// <summary>Maps event-specific .ffe names to fallback base .ffe when the specific file does not exist (MSFFB2).</summary>
+        private static readonly Dictionary<string, string> EventFfeFallbacks = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
+            { "status_docked_true.ffe", "dock.ffe" }, { "status_docked_false.ffe", "dock.ffe" },
+            { "status_landed_true.ffe", "hardpoints.ffe" }, { "status_landed_false.ffe", "hardpoints.ffe" },
+            { "status_gear_true.ffe", "gear.ffe" }, { "status_gear_false.ffe", "gear.ffe" },
+            { "status_shields_true.ffe", "vibrate.ffe" }, { "status_shields_false.ffe", "vibrate.ffe" },
+            { "status_supercruise_true.ffe", "supercruise.ffe" }, { "status_supercruise_false.ffe", "supercruise.ffe" },
+            { "status_flightassist_true.ffe", "vibrate.ffe" }, { "status_flightassist_false.ffe", "vibrate.ffe" },
+            { "status_hardpoints_true.ffe", "hardpoints.ffe" }, { "status_hardpoints_false.ffe", "hardpoints.ffe" },
+            { "status_winging_true.ffe", "vibrate.ffe" }, { "status_winging_false.ffe", "vibrate.ffe" },
+            { "status_lights_true.ffe", "vibrate.ffe" }, { "status_lights_false.ffe", "vibrate.ffe" },
+            { "status_cargoscoop_true.ffe", "cargo.ffe" }, { "status_cargoscoop_false.ffe", "cargo.ffe" },
+            { "status_silentrunning_true.ffe", "vibrate.ffe" }, { "status_silentrunning_false.ffe", "vibrate.ffe" },
+            { "status_scooping_true.ffe", "vibrate.ffe" }, { "status_scooping_false.ffe", "vibrate.ffe" },
+            { "status_srvhandbreak_true.ffe", "vibrate.ffe" }, { "status_srvhandbreak_false.ffe", "vibrate.ffe" },
+            { "status_srvturrent_true.ffe", "vibrate.ffe" }, { "status_srvturrent_false.ffe", "vibrate.ffe" },
+            { "status_srvnearship_true.ffe", "vibrate.ffe" }, { "status_srvnearship_false.ffe", "vibrate.ffe" },
+            { "status_srvdriveassist_true.ffe", "vibrate.ffe" }, { "status_srvdriveassist_false.ffe", "vibrate.ffe" },
+            { "status_masslocked_true.ffe", "vibrate.ffe" }, { "status_masslocked_false.ffe", "vibrate.ffe" },
+            { "status_fsdcharging_true.ffe", "vibrate.ffe" }, { "status_fsdcharging_false.ffe", "vibrate.ffe" },
+            { "status_fsdcooldown_true.ffe", "vibrate.ffe" }, { "status_fsdcooldown_false.ffe", "vibrate.ffe" },
+            { "status_lowfuel_true.ffe", "vibrateside.ffe" }, { "status_lowfuel_false.ffe", "vibrateside.ffe" },
+            { "status_overheating_true.ffe", "vibrateside.ffe" }, { "status_overheating_false.ffe", "vibrateside.ffe" },
+            { "docked.ffe", "dock.ffe" }, { "undocked.ffe", "dock.ffe" },
+            { "touchdown.ffe", "landed.ffe" }, { "liftoff.ffe", "landed.ffe" },
+            { "supercruiseentry.ffe", "supercruise.ffe" }, { "supercruiseexit.ffe", "supercruise.ffe" },
+            { "fsdjump.ffe", "vibrate.ffe" }, { "startjump.ffe", "vibrate.ffe" },
+            { "shieldstate.ffe", "vibrate.ffe" }, { "cockpitbreached.ffe", "vibrate.ffe" },
+            { "heatdamage.ffe", "vibrateside.ffe" }, { "heatwarning.ffe", "vibrateside.ffe" },
+            { "launchfighter.ffe", "vibrate.ffe" }, { "dockfighter.ffe", "vibrate.ffe" },
+            { "approachsettlement.ffe", "vibrate.ffe" }, { "leavebody.ffe", "vibrate.ffe" }, { "approachbody.ffe", "vibrate.ffe" },
+            { "dockingrequested.ffe", "vibrate.ffe" }, { "dockinggranted.ffe", "vibrate.ffe" },
+            { "dockingdenied.ffe", "vibrate.ffe" }, { "dockingcancelled.ffe", "vibrate.ffe" }, { "dockingtimeout.ffe", "vibrate.ffe" },
+        };
+
+        public void PlayFileEffect(string name, int duration = 250, double? leftMotorOverride = null, double? rightMotorOverride = null, bool pulse = false, int pulseAmount = 0)
+        {
+            var key = name.Trim().ToLowerInvariant();
+            if (!key.EndsWith(".ffe")) key += ".ffe";
+
+            if (!fileEffects.ContainsKey(key) && EventFfeFallbacks.TryGetValue(key, out var fallback))
+            {
+                key = fallback;
+                Logger?.LogDebug($"Event-specific .ffe not found, using fallback: {fallback}");
+            }
+
             try
             {
-                var fileEffect = fileEffects[name.Trim().ToLower()];
+                var fileEffect = fileEffects[key];
 
                 // Create a new List<> of effects
                 var forceEffects = fileEffect.ConvertAll(x => new Effect(joystick, x.Guid, x.Parameters));

@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>EDForceFeedbackSettingsEditor</AssemblyName>
+    <RootNamespace>EDForceFeedbackSettingsEditor</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ForceFeedbackSharpDx\ForceFeedbackSharpDx.csproj" />
+  </ItemGroup>
+  <!-- Build order: ensure app output folders exist before copy (no assembly reference) -->
+  <ItemGroup>
+    <ProjectReference Include="..\EDForceFeedback\EDForceFeedback.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\TestForceFeedback\TestForceFeedback.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!-- Copy editor exe and config to each app's output folder (where settings.json lives) for Debug and Release -->
+  <Target Name="CopyToAppOutputs" AfterTargets="Build">
+    <PropertyGroup>
+      <_EditorExe>$(OutputPath)$(AssemblyName).exe</_EditorExe>
+      <_EditorConfig>$(OutputPath)$(AssemblyName).exe.config</_EditorConfig>
+      <_BaseDir>$(MSBuildThisFileDirectory)..\</_BaseDir>
+    </PropertyGroup>
+    <Copy SourceFiles="$(_EditorExe)" DestinationFolder="$(_BaseDir)EDForceFeedback\bin\$(Configuration)\net48\" Condition="Exists('$(_BaseDir)EDForceFeedback\bin\$(Configuration)\net48\')" />
+    <Copy SourceFiles="$(_EditorConfig)" DestinationFolder="$(_BaseDir)EDForceFeedback\bin\$(Configuration)\net48\" Condition="Exists('$(_EditorConfig)') and Exists('$(_BaseDir)EDForceFeedback\bin\$(Configuration)\net48\')" />
+    <Copy SourceFiles="$(_EditorExe)" DestinationFolder="$(_BaseDir)TestForceFeedback\bin\$(Configuration)\net48\" Condition="Exists('$(_BaseDir)TestForceFeedback\bin\$(Configuration)\net48\')" />
+    <Copy SourceFiles="$(_EditorConfig)" DestinationFolder="$(_BaseDir)TestForceFeedback\bin\$(Configuration)\net48\" Condition="Exists('$(_EditorConfig)') and Exists('$(_BaseDir)TestForceFeedback\bin\$(Configuration)\net48\')" />
+  </Target>
+
+</Project>

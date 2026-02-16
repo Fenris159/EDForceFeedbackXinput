@@ -1,8 +1,11 @@
-﻿using Journals;
+using Journals;
 using Newtonsoft.Json;
 using System;
+using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace EDForceFeedback
 {
@@ -10,6 +13,22 @@ namespace EDForceFeedback
     {
         static private async Task Main(string[] args)
         {
+            var currentVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
+            var (isOutdated, latestVersion, releaseUrl) = await VersionChecker.CheckForUpdateAsync(currentVersion).ConfigureAwait(false);
+            if (isOutdated)
+            {
+                var result = MessageBox.Show(
+                    $"A newer version ({latestVersion}) is available.\n\nClick Yes to open the download page and exit, or No to proceed with your current version.",
+                    "Update Available",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Information);
+                if (result == DialogResult.Yes)
+                {
+                    try { Process.Start(new ProcessStartInfo(releaseUrl) { UseShellExecute = true }); } catch { }
+                    return;
+                }
+            }
+
             var fileName = $"{Directory.GetCurrentDirectory()}\\settings.json";
 
             // Check if a settings file was specified
@@ -32,9 +51,21 @@ namespace EDForceFeedback
                 }
             }
 
-            Console.WriteLine($"Using setting file: {fileName}");
+            Console.WriteLine($"Using settings file: {fileName}");
+
+            if (!File.Exists(fileName))
+            {
+                Console.WriteLine($"ERROR: Settings file not found: {fileName}");
+                Console.WriteLine("Ensure settings.json exists next to the executable, or pass a path: EDForceFeedback.exe <path>");
+                return;
+            }
 
             var settings = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(fileName));
+            if (settings?.Devices == null || settings.Devices.Count == 0)
+            {
+                Console.WriteLine("ERROR: Settings file has no Devices. Add at least one device (XInput for Xbox, or ProductGuid for joystick).");
+                return;
+            }
 
             var client = new Client();
 

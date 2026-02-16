@@ -19,7 +19,6 @@ namespace Journals
         // Cached Status.json values for change detection (Status.* synthetic events don't include values)
         private long _lastStatusFlags = -1;
         private bool? _lastStatusGear;
-        private bool? _lastStatusLanded;
 
         /// <summary>
         /// Initialize with optional API instance for testing. When <paramref name="testApi"/> is non-null,
@@ -38,12 +37,12 @@ namespace Journals
 
             foreach (var device in settings.Devices ?? new List<Device>())
             {
-                if (device.XInput)
+                if (device.XInput == true)
                 {
-                    var userIndex = device.UserIndex >= 0 ? device.UserIndex : -1;
+                    var userIndex = device.UserIndex ?? -1;
                     if (userIndex >= 0)
                     {
-                        TryAddXInputDevice(userIndex, device, defaultXInputEvents, xinputIndicesAdded);
+                        TryAddXInputDevice(userIndex, device, defaultXInputEvents, xinputIndicesAdded, settings, requireConnected: true);
                     }
                     continue;
                 }
@@ -53,8 +52,8 @@ namespace Journals
                         device.ProductGuid,
                         device.ProductName,
                         @".\Forces",
-                        device.AutoCenter,
-                        device.ForceFeedbackGain) == false)
+                        device.AutoCenter ?? true,
+                        device.ForceFeedbackGain ?? 10000) == false)
                 {
                     logger.LogError($"Device Initialization failed: {device.ProductGuid}: {device.ProductName}");
                     continue;
@@ -69,11 +68,17 @@ namespace Journals
                 Devices.Add(deviceEvents);
             }
 
+            // Auto-add all XInput slots 0-3 and broadcast rumble to each (covers virtual controller setups)
+            // Use the first XInput device config with UserIndex -1 (auto-detect) from settings, if any
+            var xinputAutoConfig = (settings?.Devices ?? new List<Device>())
+                .FirstOrDefault(d => d?.XInput == true && (d.UserIndex == null || d.UserIndex < 0));
+            var eventsForAuto = (xinputAutoConfig?.StatusEvents?.Count > 0) ? xinputAutoConfig.StatusEvents : defaultXInputEvents;
+
             for (int i = 0; i <= 3; i++)
             {
                 if (!xinputIndicesAdded.Contains(i))
                 {
-                    TryAddXInputDevice(i, null, defaultXInputEvents, xinputIndicesAdded);
+                    TryAddXInputDevice(i, xinputAutoConfig, eventsForAuto, xinputIndicesAdded, settings, requireConnected: false);
                 }
             }
 
@@ -88,15 +93,13 @@ namespace Journals
             // All typed events - use event name as key for user config (e.g. "Docked", "LoadGame")
             eliteAPI.OnAll(e => Events_AllEvent(e));
 
-            // All events including Status synthetic - Status.X don't include value, so we also handle full Status
+            // Status.json: parse Flags and emit Status.Gear:True etc. Do NOT call FindEffect for Journal events here -
+            // OnAll/typed handlers already do that; calling it here would cause duplicate rumble.
             eliteAPI.OnAllJson(arg =>
             {
                 var (eventName, json) = arg;
-                FindEffect(eventName);
                 if (eventName == "Status")
-                {
                     EmitStatusEventsFromJson(json);
-                }
             });
 
             if (testApi == null)
@@ -113,6 +116,23 @@ namespace Journals
             eliteAPI?.Invoke(json);
         }
 
+        /// <summary>For testing: fire a single event key directly (e.g. "Status.Hardpoints:False"). Plays exactly one event as configured.</summary>
+        public void TriggerEvent(string eventKey)
+        {
+            if (!string.IsNullOrEmpty(eventKey))
+                FindEffect(eventKey);
+        }
+
+        /// <summary>Stop all rumble on XInput devices immediately. Use when rumble gets stuck.</summary>
+        public void StopAllRumble()
+        {
+            foreach (var device in Devices)
+            {
+                if (device.Device is XInputRumbleDevice xinput)
+                    xinput.StopRumble();
+            }
+        }
+
         private void EmitStatusEventsFromJson(string json)
         {
             try
@@ -120,14 +140,13 @@ namespace Journals
                 var obj = JObject.Parse(json);
                 var flagsToken = obj["Flags"];
                 var gearToken = obj["Gear"];
-                var landedToken = obj["Landed"];
 
                 if (flagsToken != null && flagsToken.Type == JTokenType.Integer)
                 {
                     var flags = flagsToken.Value<long>();
                     if (_lastStatusFlags >= 0)
                     {
-                        EmitChangedStatusFlags(flags);
+                        EmitChangedStatusFlags(flags, obj);
                     }
                     _lastStatusFlags = flags;
                 }
@@ -142,15 +161,7 @@ namespace Journals
                     _lastStatusGear = gear;
                 }
 
-                if (landedToken != null)
-                {
-                    var landed = landedToken.Value<bool>();
-                    if (_lastStatusLanded.HasValue && _lastStatusLanded.Value != landed)
-                    {
-                        FindEffect($"Status.Landed:{landed}");
-                    }
-                    _lastStatusLanded = landed;
-                }
+                // Landed: skip - handled by TouchdownEvent/LiftoffEvent typed handlers
             }
             catch (Exception ex)
             {
@@ -158,34 +169,43 @@ namespace Journals
             }
         }
 
-        private void EmitChangedStatusFlags(long flags)
+        /// <summary>Emit FindEffect for each changed flag. Skip Docked/Landed (handled by typed handlers). Skip Gear/Landed when obj has explicit tokens.</summary>
+        private void EmitChangedStatusFlags(long flags, JObject obj)
         {
             long prev = _lastStatusFlags;
+            var hasGearToken = obj?["Gear"] != null;
+            // Docked and Landed are handled by typed handlers (DockedEvent, UndockedEvent, TouchdownEvent, LiftoffEvent) - skip to avoid duplicates
             var statusFields = new[] {
-                (1L << 0, "Docked"),
-                (1L << 1, "Landed"),
-                (1L << 2, "Gear"),
-                (1L << 3, "Shields"),
-                (1L << 4, "Supercruise"),
-                (1L << 5, "FlightAssist"),
-                (1L << 6, "Hardpoints"),
-                (1L << 7, "Winging"),
-                (1L << 8, "Lights"),
-                (1L << 9, "CargoScoop"),
-                (1L << 10, "SilentRunning"),
-                (1L << 11, "Scooping"),
-                (1L << 12, "SrvHandbreak"),
-                (1L << 13, "SrvTurrent"),
-                (1L << 14, "SrvNearShip"),
-                (1L << 15, "SrvDriveAssist"),
-                (1L << 16, "MassLocked"),
-                (1L << 17, "FsdCharging"),
-                (1L << 18, "FsdCooldown"),
-                (1L << 19, "LowFuel"),
-                (1L << 20, "Overheating"),
+                (1L << 0, "Docked", true),
+                (1L << 1, "Landed", true),
+                (1L << 2, "Gear", true),
+                (1L << 3, "Shields", false),
+                (1L << 4, "Supercruise", false),
+                (1L << 5, "FlightAssist", false),
+                (1L << 6, "Hardpoints", false),
+                (1L << 7, "Winging", false),
+                (1L << 8, "Lights", false),
+                (1L << 9, "CargoScoop", false),
+                (1L << 10, "SilentRunning", false),
+                (1L << 11, "Scooping", false),
+                (1L << 12, "SrvHandbreak", false),
+                (1L << 13, "SrvTurrent", false),
+                (1L << 14, "SrvNearShip", false),
+                (1L << 15, "SrvDriveAssist", false),
+                (1L << 16, "MassLocked", false),
+                (1L << 17, "FsdCharging", false),
+                (1L << 18, "FsdCooldown", false),
+                (1L << 19, "LowFuel", false),
+                (1L << 20, "Overheating", false),
             };
-            foreach (var (mask, name) in statusFields)
+            foreach (var (mask, name, skipWhenTokenPresent) in statusFields)
             {
+                if (name == "Docked" || name == "Landed")
+                    continue; // Handled by typed handlers (DockedEvent, UndockedEvent, TouchdownEvent, LiftoffEvent)
+                if (name == "Supercruise")
+                    continue; // Handled by Journal events SupercruiseEntry/SupercruiseExit (more responsive)
+                if (skipWhenTokenPresent && name == "Gear" && hasGearToken)
+                    continue; // Gear handled by explicit token when present
                 bool curr = (flags & mask) != 0;
                 bool prevVal = (prev & mask) != 0;
                 if (curr != prevVal)
@@ -195,45 +215,94 @@ namespace Journals
             }
         }
 
+        /// <summary>Journal event names we handle elsewhere. Skip FindEffect for these to avoid duplicate vibrations.</summary>
+        /// <summary>Status: we parse Flags and emit Status.Gear:True etc. via EmitStatusEventsFromJson. Docked/Undocked/Touchdown/Liftoff: handled by typed handlers. HeatWarning/HeatDamage: overlap with Status.Overheating when overheating.</summary>
+        private static readonly HashSet<string> StatusHandledEventNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            { "Docked", "Undocked", "Touchdown", "Liftoff", "Status", "HeatWarning", "HeatDamage", "ShieldState" };
+
         private void Events_AllEvent(EliteAPI.Events.IEvent e)
         {
             var eventKey = e?.Event ?? e?.GetType().Name ?? "Unknown";
+            if (StatusHandledEventNames.Contains(eventKey))
+                return; // Already fired by typed handler (e.g. DockedEvent -> Status.Docked:True)
             FindEffect(eventKey);
         }
 
         private static List<EventConfiguration> GetDefaultXInputEventConfig()
         {
-            return new List<EventConfiguration>
+            var list = new List<EventConfiguration>();
+            void Add(string evt, int duration)
             {
-                new EventConfiguration { Event = "Status.Docked:True", ForceFile = "Dock.ffe", Duration = 2000 },
-                new EventConfiguration { Event = "Status.Docked:False", ForceFile = "Dock.ffe", Duration = 2000 },
-                new EventConfiguration { Event = "Status.Gear:True", ForceFile = "Gear.ffe", Duration = 3000 },
-                new EventConfiguration { Event = "Status.Gear:False", ForceFile = "Gear.ffe", Duration = 3000 },
-                new EventConfiguration { Event = "Status.Lights:True", ForceFile = "Vibrate.ffe", Duration = 250 },
-                new EventConfiguration { Event = "Status.Lights:False", ForceFile = "Vibrate.ffe", Duration = 250 },
-                new EventConfiguration { Event = "Status.Hardpoints:True", ForceFile = "Hardpoints.ffe", Duration = 2000 },
-                new EventConfiguration { Event = "Status.Hardpoints:False", ForceFile = "Hardpoints.ffe", Duration = 2000 },
-                new EventConfiguration { Event = "Status.Landed:True", ForceFile = "Hardpoints.ffe", Duration = 1500 },
-                new EventConfiguration { Event = "Status.Landed:False", ForceFile = "Hardpoints.ffe", Duration = 1500 },
-                new EventConfiguration { Event = "Status.LowFuel:True", ForceFile = "VibrateSide.ffe", Duration = 500 },
-                new EventConfiguration { Event = "Status.LowFuel:False", ForceFile = "VibrateSide.ffe", Duration = 500 },
-                new EventConfiguration { Event = "Status.CargoScoop:True", ForceFile = "Cargo.ffe", Duration = 2000 },
-                new EventConfiguration { Event = "Status.CargoScoop:False", ForceFile = "Cargo.ffe", Duration = 2000 },
-                new EventConfiguration { Event = "Status.Overheating:True", ForceFile = "VibrateSide.ffe", Duration = 250 },
-                new EventConfiguration { Event = "Status.Overheating:False", ForceFile = "VibrateSide.ffe", Duration = 250 },
-            };
+                list.Add(new EventConfiguration { Event = evt, ForceFile = EventConfiguration.EventToFfeName(evt), Duration = duration });
+            }
+            // Status events (Status.json flags)
+            Add("Status.Docked:True", 2000); Add("Status.Docked:False", 2000);
+            Add("Status.Landed:True", 1500); Add("Status.Landed:False", 1500);
+            Add("Status.Gear:True", 3000); Add("Status.Gear:False", 3000);
+            Add("Status.Shields:True", 250); Add("Status.Shields:False", 250);
+            // Status.Supercruise skipped - use SupercruiseEntry/SupercruiseExit (Journal)
+            Add("Status.FlightAssist:True", 250); Add("Status.FlightAssist:False", 250);
+            Add("Status.Hardpoints:True", 2000); Add("Status.Hardpoints:False", 2000);
+            Add("Status.Winging:True", 250); Add("Status.Winging:False", 250);
+            Add("Status.Lights:True", 250); Add("Status.Lights:False", 250);
+            Add("Status.CargoScoop:True", 2000); Add("Status.CargoScoop:False", 2000);
+            Add("Status.SilentRunning:True", 250); Add("Status.SilentRunning:False", 250);
+            Add("Status.Scooping:True", 500); Add("Status.Scooping:False", 500);
+            Add("Status.SrvHandbreak:True", 250); Add("Status.SrvHandbreak:False", 250);
+            Add("Status.SrvTurrent:True", 250); Add("Status.SrvTurrent:False", 250);
+            Add("Status.SrvNearShip:True", 250); Add("Status.SrvNearShip:False", 250);
+            Add("Status.SrvDriveAssist:True", 250); Add("Status.SrvDriveAssist:False", 250);
+            Add("Status.MassLocked:True", 500); Add("Status.MassLocked:False", 500);
+            Add("Status.FsdCharging:True", 500); Add("Status.FsdCharging:False", 500);
+            Add("Status.FsdCooldown:True", 500); Add("Status.FsdCooldown:False", 500);
+            Add("Status.LowFuel:True", 500); Add("Status.LowFuel:False", 500);
+            Add("Status.Overheating:True", 250); Add("Status.Overheating:False", 250);
+            // Journal events (Docked/Undocked/Touchdown/Liftoff handled via Status.* above)
+            Add("SupercruiseEntry", 1000); Add("SupercruiseExit", 1000);
+            Add("FSDJump", 1500); Add("StartJump", 500);
+            Add("HullDamage", 400); Add("UnderAttack", 400);
+            // ShieldState, HeatDamage, HeatWarning: suppressed (use Status.Shields/Status.Overheating)
+            Add("Interdicted", 800); Add("Interdiction", 500); Add("EscapeInterdiction", 500);
+            Add("Died", 2000); Add("CockpitBreached", 1000);
+            Add("LaunchSRV", 2000); Add("DockSRV", 2000);
+            Add("LaunchFighter", 1500); Add("DockFighter", 1500);
+            Add("FuelScoop", 500);
+            Add("ApproachSettlement", 250); Add("LeaveBody", 250); Add("ApproachBody", 250);
+            Add("DockingRequested", 250); Add("DockingGranted", 250);
+            Add("DockingDenied", 500); Add("DockingCancelled", 250); Add("DockingTimeout", 500);
+            return list;
         }
 
-        private void TryAddXInputDevice(int userIndex, Device deviceConfig, List<EventConfiguration> defaultEvents, HashSet<int> xinputIndicesAdded)
+        private static Dictionary<string, XInputRumbleDevice.RumbleEventConfig> BuildForceFileRumbleOverrides(Dictionary<string, ForceFileRumbleEntry> forceFileRumble)
+        {
+            var result = new Dictionary<string, XInputRumbleDevice.RumbleEventConfig>();
+            if (forceFileRumble == null) return result;
+            foreach (var kv in forceFileRumble)
+            {
+                var key = (kv.Key ?? "").Trim().ToLowerInvariant();
+                if (string.IsNullOrEmpty(key)) continue;
+                if (!key.EndsWith(".ffe", StringComparison.OrdinalIgnoreCase))
+                    key += ".ffe";
+                result[key] = new XInputRumbleDevice.RumbleEventConfig
+                {
+                    LeftMotor = Math.Max(0, Math.Min(1.0, kv.Value?.Left ?? 0.5)),
+                    RightMotor = Math.Max(0, Math.Min(1.0, kv.Value?.Right ?? 0.5)),
+                    Duration = 0 // use event duration
+                };
+            }
+            return result;
+        }
+
+        private void TryAddXInputDevice(int userIndex, Device deviceConfig, List<EventConfiguration> defaultEvents, HashSet<int> xinputIndicesAdded, Settings settings, bool requireConnected = true)
         {
             try
             {
                 var rumbleGain = deviceConfig?.RumbleGain ?? 1.0;
-                var customRumble = new Dictionary<string, XInputRumbleDevice.RumbleEventConfig>();
+                var customRumble = BuildForceFileRumbleOverrides(settings?.ForceFileRumble);
                 var statusEvents = (deviceConfig?.StatusEvents?.Count > 0) ? deviceConfig.StatusEvents : defaultEvents;
 
                 var xinputDevice = new XInputRumbleDevice(userIndex, logger, rumbleGain, customRumble);
-                if (!xinputDevice.IsConnected)
+                if (requireConnected && !xinputDevice.IsConnected)
                     return;
 
                 var deviceEvents = new DeviceEvents
@@ -245,6 +314,8 @@ namespace Journals
                 Devices.Add(deviceEvents);
                 xinputIndicesAdded.Add(userIndex);
                 logger.LogInformation("Detected Xbox controller at index {0}: {1}", userIndex, xinputDevice.GetName());
+                // Startup rumble test - if you feel this, the correct controller is receiving rumble
+                xinputDevice.PlayFileEffect("Vibrate.ffe", 400);
             }
             catch (Exception ex)
             {
@@ -261,7 +332,7 @@ namespace Journals
                 if (device.EventSettings.ContainsKey(eventKey))
                 {
                     var eventConfig = device.EventSettings[eventKey];
-                    device.Device?.PlayFileEffect(eventConfig.ForceFile, eventConfig.Duration, eventConfig.LeftMotor, eventConfig.RightMotor);
+                    device.Device?.PlayFileEffect(eventConfig.ForceFile, eventConfig.Duration, eventConfig.LeftMotor, eventConfig.RightMotor, eventConfig.Pulse, eventConfig.PulseAmount);
                 }
             }
         }

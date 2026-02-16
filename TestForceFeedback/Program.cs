@@ -3,9 +3,12 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace TestForceFeedback
 {
@@ -17,13 +20,24 @@ namespace TestForceFeedback
         private static readonly string JsonTouchdown = "{\"timestamp\":\"2025-01-01T12:00:00Z\",\"event\":\"Touchdown\",\"PlayerControlled\":true,\"Latitude\":0,\"Longitude\":0,\"NearestDestination\":\"\"}";
         private static readonly string JsonLiftoff = "{\"timestamp\":\"2025-01-01T12:00:00Z\",\"event\":\"Liftoff\",\"PlayerControlled\":true,\"NearestDestination\":\"\"}";
 
-        private static string StatusJson(long flags)
-        {
-            return $"{{\"timestamp\":\"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ssZ}\",\"event\":\"Status\",\"Flags\":{flags},\"Pips\":[4,4,2],\"FireGroup\":0,\"GuiFocus\":0}}";
-        }
-
         static void Main(string[] args)
         {
+            var currentVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
+            var (isOutdated, latestVersion, releaseUrl) = VersionChecker.CheckForUpdateAsync(currentVersion).GetAwaiter().GetResult();
+            if (isOutdated)
+            {
+                var result = MessageBox.Show(
+                    $"A newer version ({latestVersion}) is available.\n\nClick Yes to open the download page and exit, or No to proceed with your current version.",
+                    "Update Available",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Information);
+                if (result == DialogResult.Yes)
+                {
+                    try { Process.Start(new ProcessStartInfo(releaseUrl) { UseShellExecute = true }); } catch { }
+                    return;
+                }
+            }
+
             var fileName = $"{Directory.GetCurrentDirectory()}\\settings.json";
 
             if (args?.Length == 1)
@@ -43,10 +57,17 @@ namespace TestForceFeedback
 
             Console.WriteLine($"Using settings file: {fileName}");
 
-            var settings = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(fileName));
-            if (settings == null)
+            if (!File.Exists(fileName))
             {
-                Console.WriteLine("Failed to load settings.");
+                Console.WriteLine($"ERROR: Settings file not found: {fileName}");
+                Console.WriteLine("Ensure settings.json exists next to the executable, or pass a path: TestForceFeedback.exe <path>");
+                return;
+            }
+
+            var settings = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(fileName));
+            if (settings == null || settings.Devices == null || settings.Devices.Count == 0)
+            {
+                Console.WriteLine("ERROR: Settings file invalid or has no Devices. Add at least one device (XInput for Xbox, or ProductGuid for joystick).");
                 return;
             }
 
@@ -60,7 +81,7 @@ namespace TestForceFeedback
             while (true)
             {
                 Console.WriteLine();
-                Console.WriteLine("0: Quit");
+                Console.WriteLine("0: Quit | s: Stop rumble (emergency)");
                 Console.WriteLine("1: Docked (true)");
                 Console.WriteLine("2: Undocked (false)");
                 Console.WriteLine("3: Landed (true) - Touchdown");
@@ -74,6 +95,12 @@ namespace TestForceFeedback
 
                 var key = Console.ReadKey();
                 if (key.KeyChar == '0') break;
+                if (key.KeyChar == 's' || key.KeyChar == 'S')
+                {
+                    client.StopAllRumble();
+                    Console.WriteLine(" Rumble stopped.");
+                    continue;
+                }
 
                 switch (key.KeyChar)
                 {
@@ -90,29 +117,23 @@ namespace TestForceFeedback
                         client.SimulateEvent(JsonLiftoff);
                         break;
                     case '5':
-                        client.SimulateEvent(StatusJson(0));
-                        client.SimulateEvent(StatusJson(4)); // Gear
+                        client.TriggerEvent("Status.Gear:True");
                         break;
                     case '6':
-                        client.SimulateEvent(StatusJson(4));
-                        client.SimulateEvent(StatusJson(0));
+                        client.TriggerEvent("Status.Gear:False");
                         break;
                     case '7':
-                        client.SimulateEvent(StatusJson(0));
-                        client.SimulateEvent(StatusJson(64)); // Hardpoints
+                        client.TriggerEvent("Status.Hardpoints:True");
                         break;
                     case '8':
-                        client.SimulateEvent(StatusJson(64));
-                        client.SimulateEvent(StatusJson(0));
+                        client.TriggerEvent("Status.Hardpoints:False");
                         break;
                     case '9':
-                        client.SimulateEvent(StatusJson(0));
-                        client.SimulateEvent(StatusJson(1048576)); // Overheating
+                        client.TriggerEvent("Status.Overheating:True");
                         break;
                     case 'a':
                     case 'A':
-                        client.SimulateEvent(StatusJson(1048576));
-                        client.SimulateEvent(StatusJson(0));
+                        client.TriggerEvent("Status.Overheating:False");
                         break;
                 }
             }

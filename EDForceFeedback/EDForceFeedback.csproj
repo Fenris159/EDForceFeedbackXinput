@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net48</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <RootNamespace>EDForceFeedback</RootNamespace>
     <AssemblyName>EDForceFeedback</AssemblyName>
@@ -12,18 +13,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Form1.cs" />
-    <Compile Remove="Form1.Designer.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="FFUtils\**\*">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Forces\**\*">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="settings*.json">
+    <Content Include="settings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

@@ -20,6 +20,8 @@ namespace ForceFeedbackSharpDx
         /// <param name="duration">Duration in milliseconds. Zero or below plays until stopped.</param>
         /// <param name="leftMotorOverride">Optional. For XInput: left motor 0.0-1.0 override.</param>
         /// <param name="rightMotorOverride">Optional. For XInput: right motor 0.0-1.0 override.</param>
-        void PlayFileEffect(string forceFileName, int duration, double? leftMotorOverride = null, double? rightMotorOverride = null);
+        /// <param name="pulse">Optional. For XInput: pulse vibration on/off multiple times.</param>
+        /// <param name="pulseAmount">Optional. For XInput: number of pulses when pulse is true. Each pulse lasts duration ms.</param>
+        void PlayFileEffect(string forceFileName, int duration, double? leftMotorOverride = null, double? rightMotorOverride = null, bool pulse = false, int pulseAmount = 0);
     }
 }

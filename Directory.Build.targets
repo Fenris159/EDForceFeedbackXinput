@@ -1,0 +1,12 @@
+<Project>
+  <!-- Generate VersionInfo.g.cs for projects with manual AssemblyInfo (GenerateAssemblyInfo=false) -->
+  <Target Name="GenerateVersionInfo" BeforeTargets="BeforeBuild"
+          Condition="'$(GenerateAssemblyInfo)' == 'false'">
+    <MakeDir Directories="$(IntermediateOutputPath)" Condition="!Exists('$(IntermediateOutputPath)')" />
+    <WriteLinesToFile File="$(IntermediateOutputPath)VersionInfo.g.cs" Overwrite="true"
+      Lines="using System.Reflection%3B%0D%0A[assembly: AssemblyVersion(&quot;$(AssemblyVersion)&quot;)]%0D%0A[assembly: AssemblyFileVersion(&quot;$(FileVersion)&quot;)]" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)VersionInfo.g.cs" />
+    </ItemGroup>
+  </Target>
+</Project>

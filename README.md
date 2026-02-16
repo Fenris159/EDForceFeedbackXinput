@@ -1,128 +1,154 @@
 # EDForceFeedback
 
-Elite Dangerous Force Feedback with a Microsoft Force Feedback 2 Joystick (MSFFB2)
+Elite Dangerous Force Feedback with support for Xbox controller rumble (XInput) and DirectInput joysticks (MSFFB2, Saitek Cyborg, etc.).
 
-This fork adds **native support for Xbox controller rumble** via Windows XInput (no drivers required) and updates the project for **EliteAPI v5.0.8**, which includes improved journal parsing, Status.json handling, and event support.
+This fork adds **native Xbox controller rumble** via Windows XInput (no drivers required) and uses **EliteAPI v5.0.8** for journal and Status.json parsing.
 
 ## Description
 
-EDForceFeedback.exe is a console program that runs during an Elite Dangerous session. It watches the ED log files and responds to game events by playing a force feedback editor (.ffe) file.
+EDForceFeedback.exe runs during an Elite Dangerous session. It reads the game's Journal and Status.json and triggers force feedback: rumble (Xbox) or .ffe playback (DirectInput joysticks).
 
-It has been tested with the following devices:
+**Supported devices:**
 
-- [Microsoft Xbox One Controller](https://en.wikipedia.org/wiki/Xbox_One_controller) – **Native XInput rumble** (Xbox One, Xbox Elite Series 1/2, Xbox Series X/S) – **No drivers required** on Windows 10/11.
+- [Microsoft Xbox One Controller](https://en.wikipedia.org/wiki/Xbox_One_controller) – Native XInput rumble (One, Elite 1/2, Series X/S). No drivers on Windows 10/11.
 - [Microsoft Sidewinder Force Feedback 2](https://en.wikipedia.org/wiki/Microsoft_SideWinder#Force_Feedback_2) joystick.
 - [Saitek Cyborg 3D Force Stick](https://www.yumpu.com/en/document/view/38049421/cyborg-force-manualqxd-saitekcom)
 
-## Xbox Controller Support (Native XInput)
+## Installation
 
-Xbox controllers (Xbox One, Xbox Elite Series 1/2, Xbox Series X/S) are supported via **native Windows XInput** – no custom drivers or XInput modification tools needed.
+1. Go to the [Releases](https://github.com/Fenris159/EDForceFeedbackXinput/releases) page on GitHub.
+2. Download the latest release:
+   - **EDForceFeedback** – main program (runs with Elite Dangerous).
+   - **TestForceFeedback** – test harness for troubleshooting rumble without the game.
+3. Extract the zip(s) to a folder of your choice (e.g. your Desktop or a dedicated game tools folder).
+4. Run `EDForceFeedback.exe` or `TestForceFeedback.exe` from the extracted folder.
 
-- **Auto-detection**: Connected Xbox controllers at UserIndex 0–3 are detected automatically; no `settings.json` entry is required.
-- **Rumble mapping**: .ffe effect names are mapped to left/right motor rumble patterns (e.g., `Dock.ffe` → strong symmetric, `VibrateSide.ffe` → right-heavy).
-- **Optional config**: Add an XInput device in `settings.json` with `"XInput": true`, `"UserIndex": 0`, and `"RumbleGain": 1.0` for custom mappings.
-- **Per-event overrides**: Use `"LeftMotor": 0.9`, `"RightMotor": 0.7` in StatusEvents for custom rumble intensity per event.
+Both programs include `settings.json` and the Settings Editor.
 
 ## Usage
 
-1. Connect your joystick/gamepad and run the EDForceFeedback.exe program.
-2. Start Elite Dangerous.
-3. In-game events like deploy/retract hardpoints and deploy/retract landing gear will send the configured forces to the joystick.
+**EDForceFeedback (main program):**
+
+1. Connect your joystick or Xbox controller.
+2. Run EDForceFeedback.exe.
+3. Start Elite Dangerous.
+4. In-game events (hardpoints, landing gear, docking, etc.) trigger the configured feedback.
+
+**TestForceFeedback (troubleshooting):** Run without Elite Dangerous to test rumble. Press 1–9 or a to fire events, s to stop. See [EVENT_REFERENCE.md](EVENT_REFERENCE.md).
+
+## Settings Editor
+
+Run **EDForceFeedbackSettingsEditor.exe** from the same folder as your `settings.json` (included in each release). It edits `settings.json` directly.
+
+1. Run the editor from the extracted EDForceFeedback or TestForceFeedback folder.
+2. Adjust per-event settings: Duration, Left/Right %, Pulse.
+3. Use **Preview** to test an event on a connected Xbox controller.
+4. **Save** writes changes to `settings.json`.
+
+You can also edit `settings.json` manually. See [Configuration](#configuration) and [EVENT_REFERENCE.md](EVENT_REFERENCE.md).
+
+## Xbox Controller Support (XInput)
+
+Xbox controllers use native Windows XInput – no custom drivers needed.
+
+**Windows.Gaming.Input (Windows 10+):** On Windows 10 and later, rumble uses the
+[Windows.Gaming.Input](https://learn.microsoft.com/en-us/uwp/api/windows.gaming.input.gamepad) WinRT API instead of classic XInput.
+
+Elite Dangerous locks controllers via DirectInput while running, which blocks traditional XInput rumble.
+
+Windows.Gaming.Input bypasses DirectInput, so rumble works when the game has the controller locked. **No virtualized controllers or workarounds required.**
+
+On older Windows, the program falls back to SharpDX XInput; rumble may not work if the game has exclusive access.
+
+- **Auto-detection**: Controllers at UserIndex 0–3 are detected automatically.
+- **Config**: Add `"XInput": true` and `"UserIndex": -1` (auto) or `0`–`3` in `settings.json`.
+- **ForceFileRumble**: Per-effect rumble strength (e.g. `Status_Gear_True.ffe` → Left/Right 0.0–1.0).
+- **Per-event overrides**: `LeftMotor`, `RightMotor`, `Pulse`, `Pulse_Amount` in StatusEvents.
+- **Event naming**: `Status.Scooping:True` → `Status_Scooping_True.ffe` (replace `.` and `:` with `_`).
 
 ## Configuration
 
-The `settings.json` file contains the device and the forces that will be played when an event occurs. Multiple different devices can be configured with different effects for each device.
+`settings.json` in each folder defines devices and events. Customize with the Settings Editor or by editing the file.
 
-Included in the package are several different examples of different configurations.
+### Device types
 
-### Devices
-
-```json
-"Devices": [
-    {
-      "ProductGuid": "02dd045e-0000-0000-0000-504944564944",
-      "ProductName": "Controller (Xbox One For Windows)",
-      "StatusEvents": [
-        ...
-      ]
-    }
-]
-```
-
-Each device and the configured effects for the device has its own section. If the device guid or product name are unknown, you may attempt to use the values the program outputs for the connected devices while it is initializing.
-
-### ProductGuid & ProductName
-
-Both values are searched against the list during initialization. If either is found the device is selected.
-
-### Autocenter
-
-The Microsoft Force Feedback device sometimes turns off the autocenter value after playing an effect. Setting this value to true resets the centering spring.
-
-### ForceFeedbackGain
-
-This value is the strength of the effects. The valid range is 0–10000.
-
-### StatusEvents
-
-Each event can have a different force played for the on or off state. The on/off state for the "Docked" event is the following: `Status.Docked:True` happens when the ship is docked and `Status.Docked:False` happens when the ship takes off.
+**XInput (Xbox):**
 
 ```json
 {
-    "Event": "Status.Docked:True",
-    "ForceFile": "Dock.ffe",
-    "Duration": 2000
+  "XInput": true,
+  "UserIndex": -1,
+  "RumbleGain": 1.0,
+  "StatusEvents": [ ... ]
 }
 ```
 
-### Event
+**DirectInput (MSFFB2, Saitek):**
 
-The `"Event"` field – the [EliteAPI](https://github.com/Somfic/EliteAPI) StatusEvent name and state to respond to.
+```json
+{
+  "ProductGuid": "001b045e-0000-0000-0000-504944564944",
+  "ProductName": "SideWinder Force Feedback 2 Joystick",
+  "AutoCenter": true,
+  "ForceFeedbackGain": 10000,
+  "StatusEvents": [ ... ]
+}
+```
 
-The format is: `Status.<StatusEventName>:<True or False>`
+### StatusEvents
 
-### ForceFile
+Each event maps to a force/rumble effect. Event keys use `Status.<Field>:<True|False>` or Journal names (e.g. `FSDJump`). See [EVENT_REFERENCE.md](EVENT_REFERENCE.md).
 
-The `"ForceFile"` field – the name of the force file (.ffe) to play when this event is detected. The force files can be found under the `.\Forces` folder. There is a force file editor included under the `.\FFUtils` folder. See the *Creating and Editing Forces* section for more information.
+```json
+{
+  "Event": "Status.Gear:True",
+  "ForceFile": "Status_Gear_True.ffe",
+  "Duration": 1500,
+  "Pulse": false,
+  "Pulse_Amount": 0
+}
+```
 
-### Duration
+- **Event** – Event key (e.g. `Status.Hardpoints:False`, `SupercruiseEntry`).
+- **ForceFile** – For XInput: rumble mapping key. For DirectInput: .ffe file in `Forces\`.
+- **Duration** – Length of effect in milliseconds.
+- **Pulse** / **Pulse_Amount** – (XInput) Pulse vibration on/off `Pulse_Amount` times.
 
-The `"Duration"` field – this is how long the force will be played. The value is in milliseconds (1 second = 1000 milliseconds). The forces will be stopped after this amount of time even if the .ffe file is configured to play longer.
+### ForceFileRumble (XInput)
 
-### Additional Events
+Global rumble strength per effect. Keys match ForceFile names (e.g. `Status_Overheating_True.ffe`). Values 0.0–1.0 for Left and Right motors.
 
-The `settings.json` [JSON](https://www.json.org/) file only has a few of the status events defined. Additional status events are provided by the [EliteAPI](https://github.com/Somfic/EliteAPI) and can be added to the `StatusEvents` array in the settings file. During game play, the console window will output the names of the events that were detected. You can use these names to add additional forces.
+## Creating and Editing Forces (DirectInput)
 
-**EliteAPI dependency**: This project uses EliteAPI v5.0.8 for journal and Status.json parsing. The required DLLs (`EliteAPI.dll`, `Newtonsoft.Json.dll`) are included in the `lib/` folder (from the [EliteAPI GitHub releases](https://github.com/Somfic/EliteAPI/releases)); no NuGet package is required.
+DirectInput devices use .ffe files from the `Forces` folder. The EDForceFeedback release includes `FFUtils`:
 
-## Creating and Editing Forces
+- **fedit.exe** – Create and edit force effects. Save .ffe files into the `Forces` folder.
+- **csFeedback.exe**, **FFConst.exe** – Additional configuration.
 
-On startup all .ffe files in the `.\Forces` folder will be loaded. To create new forces use `fedit.exe` and save the file in the `.\Forces` folder.
+---
 
-### .\FFUtils
+## Building from Source
 
-These are Microsoft utilities to edit and configure force feedback devices. They may get removed from this location. They can be found in various locations on the internet. They were part of the DirectX DirectInput developer packages.
+For developers who want to build from the repository:
 
-- csFeedback.exe
-- fedit.exe
-- FFConst.exe
+**Version:** Bump `Version` in `Directory.Build.props` for releases. See [CHANGELOG.md](CHANGELOG.md) for change history.
 
-### fedit.exe
+**Version check on startup:** EDForceFeedback and TestForceFeedback query the GitHub Releases API at startup. If a newer release exists, a message box suggests downloading it. The check compares the **release tag** (e.g. `v1.0.0`) against the built assembly version. **Zip filenames do not need to match** – use any names you like (e.g. `EDForceFeedback-v1.0.0.zip`). Only the tag on the GitHub release matters. When creating a release, set the tag to match `Version` in `Directory.Build.props` (e.g. `v1.0.0`).
 
-This utility allows you to build your own custom forces. For an example, open the Cargo.ffe file. The forces can overlay and be played before, after, and simultaneously to create complex movement and effects.
+1. Install [.NET SDK](https://dotnet.microsoft.com/download) 6.0 or later.
+2. Restore and build:
+   - Full solution: `dotnet build EDForceFeedback.sln -c Release`
+   - Main app only: `.\build.ps1`
+3. Outputs:
+   - `EDForceFeedback\bin\Release\net48\EDForceFeedback.exe`
+   - `EDForceFeedback\bin\Release\net48\EDForceFeedbackSettingsEditor.exe` (also copied here)
+   - `TestForceFeedback\bin\Release\net48\TestForceFeedback.exe`
 
-## Build
+Packages are stored in `./packages` (see `nuget.config`).
 
-1. Ensure [.NET SDK](https://dotnet.microsoft.com/download) (6.0+) is installed.
-2. Restore packages: `dotnet restore EDForceFeedback.sln --packages .\packages`
-3. Build main app: `dotnet build EDForceFeedback\EDForceFeedback.csproj -c Release`
-4. Or use the build script: `.\build.ps1`
+**EliteAPI**: Uses EliteAPI v5.0.8. DLLs are in `lib/` from [EliteAPI releases](https://github.com/Somfic/EliteAPI/releases); no NuGet restore needed for EliteAPI.
 
-Output: `EDForceFeedback\bin\Release\net48\EDForceFeedback.exe`
-
-Packages are stored in the workspace `./packages` folder (see `nuget.config`).
-
-**TestForceFeedback**: A test harness (`TestForceFeedback.exe`) simulates Elite events without the game. Build with the solution or run `dotnet build TestForceFeedback\TestForceFeedback.csproj -c Release`.
+---
 
 ## From Original Author
 
