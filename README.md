@@ -2,7 +2,8 @@
 
 **EDForceFeedbackXinput** is a fork of EDForceFeedback that adds Xbox and PlayStation controller rumble support. Elite Dangerous Force Feedback with gamepad rumble (Xbox, PlayStation via GameInput or XInput emulation) and DirectInput joysticks (MSFFB2, Saitek Cyborg, etc.).
 
-This fork adds **native Xbox controller rumble** via GameInput, raw HID, or XInput (no custom drivers). Elite Dangerous locks the controller with DirectInput, so rumble only works reliably with **wired or Bluetooth** connections, or with a **workaround** when using the Xbox Wireless Adapter. Uses **EliteAPI v5.0.8** for journal and Status.json parsing.
+This fork adds **native Xbox controller rumble** via GameInput, raw HID, or XInput (no custom drivers). Elite Dangerous locks the controller with DirectInput, so rumble only works reliably with **wired or Bluetooth** connections, or with a **workaround** when using the Xbox Wireless Adapter.
+Uses **EliteAPI v5.0.8** for journal and Status.json parsing.
 
 ## Description
 
@@ -24,7 +25,8 @@ EDForceFeedbackXinput runs during an Elite Dangerous session (executable: `EDFor
 3. Extract the zip(s) to a folder of your choice (e.g. your Desktop or a dedicated game tools folder).
 4. Run `EDForceFeedback.exe` or `TestForceFeedback.exe` from the extracted folder.
 
-5. **Xbox controller rumble not working?** First check [Xbox Controller Support](#xbox-controller-support-xinput)—rumble depends on your connection (wired/Bluetooth vs wireless adapter). If using GameInput, run `GameInputRedist.msi` from the `redist` folder (if included) to install or update the Microsoft GameInput runtime, then restart the program.
+5. **Xbox controller rumble not working?** First check [Gamepad Rumble](#gamepad-rumble-xbox--playstation)—rumble depends on your connection (wired/Bluetooth vs wireless adapter).
+   If using GameInput, run `GameInputRedist.msi` from the `redist` folder (if included) to install or update the Microsoft GameInput runtime, then restart the program.
 
 Both programs include `settings.json` and the Settings Editor.
 
@@ -52,7 +54,9 @@ You can also edit `settings.json` manually. See [Configuration](#configuration) 
 
 ## Gamepad Rumble (Xbox & PlayStation)
 
-EDForceFeedbackXinput simulates rumble using GameInput, raw HID, or XInput—no special drivers required. **Xbox controllers** work via all three backends; **PlayStation controllers** (DualSense, DualShock 4) work via GameInput (native) or XInput emulation (DS4Windows, DualSenseX, Steam Input). However, **Elite Dangerous locks the controller via DirectInput**, which blocks rumble from reaching the controller in most setups. Whether rumble works depends on how you connect the controller.
+EDForceFeedbackXinput simulates rumble using GameInput, raw HID, or XInput—no special drivers required. **Xbox controllers** work via all three backends; **PlayStation controllers** (DualSense, DualShock 4) work via GameInput (native) or XInput emulation (DS4Windows, DualSenseX, Steam Input).
+
+However, **Elite Dangerous locks the controller via DirectInput**, which blocks rumble from reaching the controller in most setups. Whether rumble works depends on how you connect the controller.
 
 ### Connection Scenarios
 
@@ -104,6 +108,7 @@ Run the program as usual. Rumble is sent to the physical controller, which Elite
 ---
 
 **Backend details:**
+
 - **Microsoft.GameInput (preferred):** Native GameInput API via a C++/CLI wrapper. Supports Xbox and PlayStation controllers (e.g. DualSense). Requires the [GameInput Redistributable](https://aka.ms/gameinput) (see [Deployment](#deployment)).
 - **Raw HID (fallback):** Xbox controllers only; bypasses XInput/DirectInput when the controller exposes HID and Elite is not locking it (e.g. wired/Bluetooth).
 - **SharpDX XInput (last resort):** Xbox controllers or PlayStation controllers emulated as XInput (DS4Windows, DualSenseX, Steam Input). May be blocked when Elite has exclusive DirectInput access.
@@ -199,7 +204,10 @@ For developers who want to build from the repository:
 
 **Version:** Bump `Version` in `Directory.Build.props` for releases. See [CHANGELOG.md](CHANGELOG.md) for change history.
 
-**Version check on startup:** EDForceFeedbackXinput and TestForceFeedback query the GitHub Releases API at startup. If a newer release exists, a message box suggests downloading it. The check compares the **release tag** (e.g. `v1.0.0`) against the built assembly version. **Zip filenames do not need to match** – use any names you like (e.g. `EDForceFeedback-v1.0.0.zip`). Only the tag on the GitHub release matters. When creating a release, set the tag to match `Version` in `Directory.Build.props` (e.g. `v1.0.0`).
+**Version check on startup:** EDForceFeedbackXinput and TestForceFeedback query the GitHub Releases API at startup.
+If a newer release exists, a message box suggests downloading it. The check compares the **release tag** (e.g. `v1.0.0`) against the built assembly version.
+**Zip filenames do not need to match** – use any names you like (e.g. `EDForceFeedback-v1.0.0.zip`). Only the tag on the GitHub release matters.
+When creating a release, set the tag to match `Version` in `Directory.Build.props` (e.g. `v1.0.0`).
 
 1. Install [.NET SDK](https://dotnet.microsoft.com/download) 6.0 or later.
 2. Restore and build:
