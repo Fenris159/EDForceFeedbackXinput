@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [1.0.0] - 2025-02-12
 
-First release of the fork. Changes since the original [EDForceFeedback](https://github.com/BobTheCoder/EDForceFeedback) by Bob (CMDR Axe_):
+First release of **EDForceFeedbackXinput**. Changes since the original [EDForceFeedback](https://github.com/BobTheCoder/EDForceFeedback) by Bob (CMDR Axe_):
 
 ### Added
 
@@ -31,7 +31,7 @@ First release of the fork. Changes since the original [EDForceFeedback](https://
 
 ### Removed
 
-- **EDForceFeedbackConsole** – Legacy project; replaced by EDForceFeedback (SDK-style).
+- **EDForceFeedbackConsole** – Legacy project; replaced by EDForceFeedbackXinput (SDK-style).
 - **Form1** – WinForms GUI; Settings Editor is the preferred way to configure.
 - **Resume stack** – Disabled to prevent indefinite rumble when rapid events fire.
 - **Duplicate event handling** – OnAllJson no longer double-fires Journal events.

@@ -296,6 +296,9 @@ paket-files/
 # Cursor IDE
 .cursor/
 
+# Forum post draft (not for repo)
+forum.md
+
 # OS-generated files
 Thumbs.db
 Desktop.ini

@@ -1,16 +1,17 @@
-# EDForceFeedback
+# EDForceFeedbackXinput
 
-Elite Dangerous Force Feedback with support for Xbox controller rumble (XInput) and DirectInput joysticks (MSFFB2, Saitek Cyborg, etc.).
+**EDForceFeedbackXinput** is a fork of EDForceFeedback that adds Xbox and PlayStation controller rumble support. Elite Dangerous Force Feedback with gamepad rumble (Xbox, PlayStation via GameInput or XInput emulation) and DirectInput joysticks (MSFFB2, Saitek Cyborg, etc.).
 
-This fork adds **native Xbox controller rumble** via Windows XInput (no drivers required) and uses **EliteAPI v5.0.8** for journal and Status.json parsing.
+This fork adds **native Xbox controller rumble** via GameInput, raw HID, or XInput (no custom drivers). Elite Dangerous locks the controller with DirectInput, so rumble only works reliably with **wired or Bluetooth** connections, or with a **workaround** when using the Xbox Wireless Adapter. Uses **EliteAPI v5.0.8** for journal and Status.json parsing.
 
 ## Description
 
-EDForceFeedback.exe runs during an Elite Dangerous session. It reads the game's Journal and Status.json and triggers force feedback: rumble (Xbox) or .ffe playback (DirectInput joysticks).
+EDForceFeedbackXinput runs during an Elite Dangerous session (executable: `EDForceFeedback.exe`). It reads the game's Journal and Status.json and triggers force feedback: rumble (Xbox) or .ffe playback (DirectInput joysticks).
 
 **Supported devices:**
 
 - [Microsoft Xbox One Controller](https://en.wikipedia.org/wiki/Xbox_One_controller) – Native XInput rumble (One, Elite 1/2, Series X/S). No drivers on Windows 10/11.
+- **PlayStation controllers (DualSense, DualShock 4)** – Via **GameInput** (native support; Microsoft GameInput includes DualSense) or **XInput emulation** (DS4Windows, DualSenseX, Steam Input, etc.). When emulated as XInput, the controller appears as an Xbox controller and rumble works the same way.
 - [Microsoft Sidewinder Force Feedback 2](https://en.wikipedia.org/wiki/Microsoft_SideWinder#Force_Feedback_2) joystick.
 - [Saitek Cyborg 3D Force Stick](https://www.yumpu.com/en/document/view/38049421/cyborg-force-manualqxd-saitekcom)
 
@@ -18,18 +19,18 @@ EDForceFeedback.exe runs during an Elite Dangerous session. It reads the game's 
 
 1. Go to the [Releases](https://github.com/Fenris159/EDForceFeedbackXinput/releases) page on GitHub.
 2. Download the latest release:
-   - **EDForceFeedback** – main program (runs with Elite Dangerous).
+   - **EDForceFeedback** – main program executable from EDForceFeedbackXinput (runs with Elite Dangerous).
    - **TestForceFeedback** – test harness for troubleshooting rumble without the game.
 3. Extract the zip(s) to a folder of your choice (e.g. your Desktop or a dedicated game tools folder).
 4. Run `EDForceFeedback.exe` or `TestForceFeedback.exe` from the extracted folder.
 
-5. **Xbox controller rumble not working?** If your Xbox controller is connected but rumble doesn't respond, run `GameInputRedist.msi` from the `redist` folder (if included in the release). This installs or updates the Microsoft GameInput runtime required for Xbox rumble. You may need to run it once and then restart the program.
+5. **Xbox controller rumble not working?** First check [Xbox Controller Support](#xbox-controller-support-xinput)—rumble depends on your connection (wired/Bluetooth vs wireless adapter). If using GameInput, run `GameInputRedist.msi` from the `redist` folder (if included) to install or update the Microsoft GameInput runtime, then restart the program.
 
 Both programs include `settings.json` and the Settings Editor.
 
 ## Usage
 
-**EDForceFeedback (main program):**
+**EDForceFeedbackXinput (main program):**
 
 1. Connect your joystick or Xbox controller.
 2. Run EDForceFeedback.exe.
@@ -49,15 +50,63 @@ Run **EDForceFeedbackSettingsEditor.exe** from the same folder as your `settings
 
 You can also edit `settings.json` manually. See [Configuration](#configuration) and [EVENT_REFERENCE.md](EVENT_REFERENCE.md).
 
-## Xbox Controller Support (XInput)
+## Gamepad Rumble (Xbox & PlayStation)
 
-Xbox controllers use Microsoft.GameInput (preferred), raw HID, or SharpDX XInput – no custom drivers needed.
+EDForceFeedbackXinput simulates rumble using GameInput, raw HID, or XInput—no special drivers required. **Xbox controllers** work via all three backends; **PlayStation controllers** (DualSense, DualShock 4) work via GameInput (native) or XInput emulation (DS4Windows, DualSenseX, Steam Input). However, **Elite Dangerous locks the controller via DirectInput**, which blocks rumble from reaching the controller in most setups. Whether rumble works depends on how you connect the controller.
 
-**Microsoft.GameInput (preferred):** Uses the native GameInput API via a C++/CLI wrapper. Rumbles **all** connected gamepad devices. Requires the [GameInput Redistributable](https://aka.ms/gameinput) to be installed (see [Deployment](#deployment)).
+### Connection Scenarios
 
-**Raw HID (fallback):** When an Xbox controller exposes a HID interface, the program uses raw HID output reports via HidSharp. This **bypasses XInput and DirectInput entirely**, allowing background rumble injection while Elite Dangerous has the controller via DirectInput. The controller is not claimed through any high-level input stack.
+| Connection | Rumble works? |
+|------------|---------------|
+| **Wired (USB)** | Yes – typically works as-is. |
+| **Bluetooth (direct)** | Yes – typically works as-is. |
+| **Microsoft Wireless Adapter** | No – raw HID is hidden behind the adapter driver. A [workaround](#wireless-adapter-workaround) is required. |
 
-**SharpDX XInput (last resort):** If GameInput and raw HID are unavailable, the program falls back to SharpDX XInput. XInput shares the controller with other applications but may be blocked when Elite has exclusive DirectInput access.
+### Wireless Adapter Workaround
+
+If you use the Xbox Wireless Adapter, you must use ReWASD + HidHide so Elite binds to a *virtual* controller while EDForceFeedbackXinput sends rumble to the *physical* controller. Elite never sees the physical controller, so it cannot lock it.
+
+**Requirements:** [ReWASD](https://www.rewasd.com/) (paid) and [HidHide](https://github.com/ViGEm/HidHide/releases) (free).
+
+#### Step 1: ReWASD – Virtual controller
+
+1. Install ReWASD.
+2. Create a virtual Xbox One Controller:
+   - Open **Preferences** and **uncheck** "Hide physical controller when virtual one is created".
+   - In **Device output settings**, select **Xbox One Controller**.
+   - Assign all buttons to match your physical controller.
+3. Activate the profile. This creates a second (virtual) controller.
+4. In the **Xbox Accessories** app, confirm both controllers appear.
+
+#### Step 2: HidHide – Hide physical controller from Elite
+
+1. Install HidHide.
+2. Add **EliteDangerous64.exe** to the application list.
+3. Enable **Inverse application cloak**.
+4. Select your **physical** Xbox controller (toggle ReWASD on/off to identify which is physical vs virtual).
+5. Elite will now bind only to the virtual controller; the physical controller stays available for rumble.
+
+#### Step 3: Elite Dangerous – Use virtual controller bindings
+
+1. Start Elite Dangerous and open **Options → Controls**.
+2. Create a new custom keybind (any change) so Elite generates the virtual device ID.
+3. Open the bindings folder:
+   `%LocalAppData%\Frontier Developments\Elite Dangerous\Options\Bindings`
+4. Find the new binding file and look for `Binding Device="045E02E0"` (your virtual ID may differ).
+5. Copy that device ID.
+6. Open your normal binding file and **Replace All** occurrences of the original device ID with the virtual device ID (Notepad++ makes this easy).
+7. Restart Elite and load your normal bindings. Controls will use the virtual controller.
+
+#### Step 4: Run EDForceFeedbackXinput
+
+Run the program as usual. Rumble is sent to the physical controller, which Elite never sees, so rumble works normally.
+
+---
+
+**Backend details:**
+- **Microsoft.GameInput (preferred):** Native GameInput API via a C++/CLI wrapper. Supports Xbox and PlayStation controllers (e.g. DualSense). Requires the [GameInput Redistributable](https://aka.ms/gameinput) (see [Deployment](#deployment)).
+- **Raw HID (fallback):** Xbox controllers only; bypasses XInput/DirectInput when the controller exposes HID and Elite is not locking it (e.g. wired/Bluetooth).
+- **SharpDX XInput (last resort):** Xbox controllers or PlayStation controllers emulated as XInput (DS4Windows, DualSenseX, Steam Input). May be blocked when Elite has exclusive DirectInput access.
 
 - **Auto-detection**: Controllers at UserIndex 0–3 are detected automatically.
 - **Config**: Add `"XInput": true` and `"UserIndex": -1` (auto) or `0`–`3` in `settings.json`.
@@ -137,7 +186,7 @@ Global rumble strength per effect. Keys match ForceFile names (e.g. `Status_Over
 
 ## Creating and Editing Forces (DirectInput)
 
-DirectInput devices use .ffe files from the `Forces` folder. The EDForceFeedback release includes `FFUtils`:
+DirectInput devices use .ffe files from the `Forces` folder. The EDForceFeedbackXinput release includes `FFUtils`:
 
 - **fedit.exe** – Create and edit force effects. Save .ffe files into the `Forces` folder.
 - **csFeedback.exe**, **FFConst.exe** – Additional configuration.
@@ -150,7 +199,7 @@ For developers who want to build from the repository:
 
 **Version:** Bump `Version` in `Directory.Build.props` for releases. See [CHANGELOG.md](CHANGELOG.md) for change history.
 
-**Version check on startup:** EDForceFeedback and TestForceFeedback query the GitHub Releases API at startup. If a newer release exists, a message box suggests downloading it. The check compares the **release tag** (e.g. `v1.0.0`) against the built assembly version. **Zip filenames do not need to match** – use any names you like (e.g. `EDForceFeedback-v1.0.0.zip`). Only the tag on the GitHub release matters. When creating a release, set the tag to match `Version` in `Directory.Build.props` (e.g. `v1.0.0`).
+**Version check on startup:** EDForceFeedbackXinput and TestForceFeedback query the GitHub Releases API at startup. If a newer release exists, a message box suggests downloading it. The check compares the **release tag** (e.g. `v1.0.0`) against the built assembly version. **Zip filenames do not need to match** – use any names you like (e.g. `EDForceFeedback-v1.0.0.zip`). Only the tag on the GitHub release matters. When creating a release, set the tag to match `Version` in `Directory.Build.props` (e.g. `v1.0.0`).
 
 1. Install [.NET SDK](https://dotnet.microsoft.com/download) 6.0 or later.
 2. Restore and build:
@@ -180,7 +229,7 @@ Packages are stored in `./packages` (see `nuget.config`).
 
 **Files to deploy (when using GameInput):**
 
-- `EDForceFeedback.exe` (or `TestForceFeedback.exe`), `settings.json`, `Forces\`, etc.
+- `EDForceFeedback.exe` (or `TestForceFeedback.exe`) from EDForceFeedbackXinput, `settings.json`, `Forces\`, etc.
 - `GameInputWrapper.dll` (C++/CLI mixed assembly; built from the GameInputWrapper project)
 - `redist\GameInputRedist.msi` – installer; users may need to run it to enable or update the GameInput runtime
 
