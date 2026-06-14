@@ -1,0 +1,164 @@
+# Build release artifacts and optionally publish a GitHub Release.
+#
+# - Manual run, publish_github_release=false: builds zip artifacts only.
+# - Manual run, publish_github_release=true: creates tag v{Directory.Build.props Version}
+#   and publishes a GitHub Release using CurrentReleaseNotes.md as the release body.
+# - Tag push vX.Y.Z: validates the tag against Directory.Build.props, builds artifacts,
+#   and publishes/updates the matching GitHub Release using CurrentReleaseNotes.md.
+name: Build release
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_github_release:
+        description: "Create tag v{Version} and publish a GitHub Release using CurrentReleaseNotes.md"
+        type: boolean
+        default: false
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      run_release: ${{ steps.pick.outputs.run_release }}
+    steps:
+      - id: pick
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run_release=true" >> "$GITHUB_OUTPUT"
+            echo "Gate: workflow_dispatch release build will run."
+            exit 0
+          fi
+
+          TAG="${GITHUB_REF#refs/tags/}"
+          if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "run_release=true" >> "$GITHUB_OUTPUT"
+            echo "Gate: stable semver tag $TAG release build will run."
+          else
+            echo "run_release=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Tag '$TAG' is not a stable semver tag. Expected vX.Y.Z. Skipping release build."
+          fi
+
+  package:
+    needs: gate
+    if: needs.gate.outputs.run_release == 'true'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Read version from Directory.Build.props
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$props = Get-Content .\Directory.Build.props
+          $version = $props.Project.PropertyGroup.Version
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            Write-Error "Could not read Version from Directory.Build.props"
+          }
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            Write-Error "Version '$version' is not strict semver X.Y.Z"
+          }
+          "value=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "tag=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Verify tag matches Directory.Build.props
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $expected = "v${{ steps.version.outputs.value }}"
+          if ($tag -ne $expected) {
+            Write-Error "Git tag '$tag' does not match Directory.Build.props Version '${{ steps.version.outputs.value }}'. Expected '$expected'."
+          }
+          Write-Host "OK: tag $tag matches version ${{ steps.version.outputs.value }}"
+
+      - name: Verify CurrentReleaseNotes.md
+        shell: pwsh
+        run: |
+          if (-not (Test-Path .\CurrentReleaseNotes.md)) {
+            Write-Error "Missing CurrentReleaseNotes.md at repo root."
+          }
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: |
+          dotnet restore EDForceFeedback.sln --packages .\packages
+
+      - name: Verify GameInput package
+        shell: pwsh
+        run: |
+          $gameInputPath = ".\packages\microsoft.gameinput\3.2.138"
+          if (-not (Test-Path $gameInputPath)) {
+            Write-Error "Missing $gameInputPath. GameInputWrapper requires the Microsoft.GameInput package in PackageReference layout."
+          }
+          if (-not (Test-Path "$gameInputPath\native\include\GameInput.h")) {
+            Write-Error "Missing GameInput.h under $gameInputPath."
+          }
+
+      - name: Build solution
+        shell: pwsh
+        run: |
+          msbuild EDForceFeedback.sln /m /p:Configuration=Release /p:Platform=x64 /v:m
+
+      - name: Package release zips
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.value }}"
+          $releaseDir = Join-Path $PWD "build\release"
+          New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
+
+          $appOut = Join-Path $PWD "EDForceFeedback\bin\Release\net48"
+          $testOut = Join-Path $PWD "TestForceFeedback\bin\Release\net48"
+
+          if (-not (Test-Path (Join-Path $appOut "EDForceFeedback.exe"))) {
+            Write-Error "Missing EDForceFeedback.exe in $appOut"
+          }
+          if (-not (Test-Path (Join-Path $testOut "TestForceFeedback.exe"))) {
+            Write-Error "Missing TestForceFeedback.exe in $testOut"
+          }
+
+          Compress-Archive -Path (Join-Path $appOut "*") -DestinationPath (Join-Path $releaseDir "EDForceFeedback-v$version.zip") -Force
+          Compress-Archive -Path (Join-Path $testOut "*") -DestinationPath (Join-Path $releaseDir "TestForceFeedback-v$version.zip") -Force
+          Get-ChildItem $releaseDir
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: EDForceFeedbackXinput-release-zips
+          path: build/release/*.zip
+
+      - name: Create tag and GitHub Release (manual publish)
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_github_release == true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+          $version = "${{ steps.version.outputs.value }}"
+          gh release create $tag build/release/*.zip --title "EDForceFeedbackXinput v$version" --notes-file CurrentReleaseNotes.md
+
+      - name: Publish GitHub Release (tag builds only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: EDForceFeedbackXinput v${{ steps.version.outputs.value }}
+          files: build/release/*.zip
+          body_path: CurrentReleaseNotes.md

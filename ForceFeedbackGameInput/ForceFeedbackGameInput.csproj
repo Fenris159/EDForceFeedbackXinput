@@ -5,6 +5,7 @@
     <RootNamespace>ForceFeedbackGameInput</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.GameInput" Version="3.2.138" PrivateAssets="all" />
     <ProjectReference Include="..\ForceFeedbackSharpDx\ForceFeedbackSharpDx.csproj" />
     <ProjectReference Include="..\GameInputWrapper\GameInputWrapper.vcxproj" />
   </ItemGroup>

@@ -1,5 +1,7 @@
 # EDForceFeedbackXinput
 
+[![CI](https://github.com/Fenris159/EDForceFeedbackXinput/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Fenris159/EDForceFeedbackXinput/actions/workflows/ci.yml)
+[![Build release](https://github.com/Fenris159/EDForceFeedbackXinput/actions/workflows/release.yml/badge.svg)](https://github.com/Fenris159/EDForceFeedbackXinput/actions/workflows/release.yml)
 [![GitHub release](https://img.shields.io/github/v/release/Fenris159/EDForceFeedbackXinput?style=flat&logo=github&label=release)](https://github.com/Fenris159/EDForceFeedbackXinput/releases/latest)
 [![License: MIT](https://img.shields.io/github/license/Fenris159/EDForceFeedbackXinput?style=flat&logo=github&label=license)](https://github.com/Fenris159/EDForceFeedbackXinput/blob/master/LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/Fenris159/EDForceFeedbackXinput?style=flat&logo=github&label=stars)](https://github.com/Fenris159/EDForceFeedbackXinput/stargazers)
@@ -232,6 +234,8 @@ For developers who want to build from the repository:
 If a newer release exists, a message box suggests downloading it. The check compares the **release tag** (e.g. `v1.0.1`) against the built assembly version.
 **Zip filenames do not need to match** – use any names you like (e.g. `EDForceFeedback-v1.0.1.zip`). Only the tag on the GitHub release matters.
 When creating a release, set the tag to match `Version` in `Directory.Build.props` (e.g. `v1.0.1`).
+
+**GitHub release workflow:** Use **Actions -> Build release** to build release zips. Leave **Create tag v{Version} and publish a GitHub Release** unchecked to download artifacts only. Check it to create tag `v{Version}` and publish a GitHub Release using `CurrentReleaseNotes.md` as the release description. Pushing a strict semver tag such as `v1.0.1` also builds and publishes a release.
 
 1. Install [.NET SDK](https://dotnet.microsoft.com/download) 6.0 or later.
 2. Restore and build:

@@ -11,12 +11,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Optional `JournalDirectory` setting for users with redirected or non-standard Elite Dangerous journal folders.
 - Optional `BindingsDirectory` setting for users with redirected or non-standard Elite Dangerous bindings folders.
 - Current release notes file for the v1.0.1 journal-path fix release.
+- GitHub Actions CI workflow for Windows release builds.
+- GitHub Actions release workflow that builds release zips and uses `CurrentReleaseNotes.md` as the GitHub Release description.
 
 ### Changed
 
 - Bumped project version from `1.0.0` to `1.0.1`.
 - EDForceFeedback now passes explicit journal and bindings directories to EliteAPI instead of relying on EliteAPI's default path discovery.
 - README configuration documentation now explains journal and bindings path overrides.
+- README now includes repository badges and release workflow instructions.
 - Bundled EDForceFeedback and TestForceFeedback `settings.json` files now include `JournalDirectory` and `BindingsDirectory` placeholders.
 - Settings Editor now preserves `JournalDirectory` and `BindingsDirectory` when saving `settings.json`.
 
