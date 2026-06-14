@@ -51,7 +51,7 @@ jobs:
   package:
     needs: gate
     if: needs.gate.outputs.run_release == 'true'
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
       - name: Checkout
