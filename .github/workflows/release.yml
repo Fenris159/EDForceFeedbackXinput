@@ -7,6 +7,9 @@
 #   and publishes/updates the matching GitHub Release using CurrentReleaseNotes.md.
 name: Build release
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   workflow_dispatch:
     inputs:
