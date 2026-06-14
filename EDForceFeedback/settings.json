@@ -1,4 +1,6 @@
 {
+  "JournalDirectory": null,
+  "BindingsDirectory": null,
   "KnownWorkingDevices": {
     "NOTES": "Single settings file for all controllers. Edit Devices to add/remove Xbox (XInput) or joysticks (MSFFB2, etc).",
     "Xbox One/Elite (native XInput)": "Auto-detected at UserIndex 0-3. No driver needed.",

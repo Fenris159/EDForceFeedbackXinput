@@ -1,5 +1,15 @@
 # EDForceFeedbackXinput
 
+[![GitHub release](https://img.shields.io/github/v/release/Fenris159/EDForceFeedbackXinput?style=flat&logo=github&label=release)](https://github.com/Fenris159/EDForceFeedbackXinput/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/Fenris159/EDForceFeedbackXinput?style=flat&logo=github&label=license)](https://github.com/Fenris159/EDForceFeedbackXinput/blob/master/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/Fenris159/EDForceFeedbackXinput?style=flat&logo=github&label=stars)](https://github.com/Fenris159/EDForceFeedbackXinput/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/Fenris159/EDForceFeedbackXinput?style=flat&logo=github&label=issues)](https://github.com/Fenris159/EDForceFeedbackXinput/issues)
+[![GitHub all releases](https://img.shields.io/github/downloads/Fenris159/EDForceFeedbackXinput/total?style=flat&logo=github&label=downloads&cacheSeconds=600)](https://github.com/Fenris159/EDForceFeedbackXinput/releases)
+[![Windows 10/11](https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4?style=flat&logo=windows&logoColor=white)](https://github.com/Fenris159/EDForceFeedbackXinput#requirements)
+[![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512BD4?style=flat&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/download/dotnet-framework/net48)
+[![GameInput](https://img.shields.io/badge/GameInput-supported-107C10?style=flat&logo=xbox&logoColor=white)](https://aka.ms/gameinput)
+[![EliteAPI v5.0.8](https://img.shields.io/badge/EliteAPI-v5.0.8-FF7F00?style=flat)](https://github.com/Somfic/EliteAPI)
+
 **EDForceFeedbackXinput** is a fork of EDForceFeedback that adds Xbox and PlayStation controller rumble support. Elite Dangerous Force Feedback with gamepad rumble (Xbox, PlayStation via GameInput or XInput emulation) and DirectInput joysticks (MSFFB2, Saitek Cyborg, etc.).
 
 This fork adds **native Xbox controller rumble** via GameInput, raw HID, or XInput (no custom drivers). Elite Dangerous locks the controller with DirectInput, so rumble only works reliably with **wired or Bluetooth** connections, or with a **workaround** when using the Xbox Wireless Adapter.
@@ -141,6 +151,20 @@ For timed rumble (e.g. 300ms), call `SetRumble(0.6f, 0.4f)` then `SetRumble(0, 0
 
 `settings.json` in each folder defines devices and events. Customize with the Settings Editor or by editing the file.
 
+Top-level path settings are optional:
+
+- `JournalDirectory`: Elite Dangerous journal folder. Defaults to the current user's Windows Saved Games known folder, then `%USERPROFILE%\Saved Games\Frontier Developments\Elite Dangerous`.
+- `BindingsDirectory`: Elite Dangerous bindings folder. Defaults to `%LocalAppData%\Frontier Developments\Elite Dangerous\Options\Bindings`.
+
+Example:
+
+```json
+{
+  "JournalDirectory": "C:\\Users\\senre\\Saved Games\\Frontier Developments\\Elite Dangerous",
+  "BindingsDirectory": "C:\\Users\\senre\\AppData\\Local\\Frontier Developments\\Elite Dangerous\\Options\\Bindings"
+}
+```
+
 ### Device types
 
 **XInput (Xbox):**
@@ -205,9 +229,9 @@ For developers who want to build from the repository:
 **Version:** Bump `Version` in `Directory.Build.props` for releases. See [CHANGELOG.md](CHANGELOG.md) for change history.
 
 **Version check on startup:** EDForceFeedbackXinput and TestForceFeedback query the GitHub Releases API at startup.
-If a newer release exists, a message box suggests downloading it. The check compares the **release tag** (e.g. `v1.0.0`) against the built assembly version.
-**Zip filenames do not need to match** – use any names you like (e.g. `EDForceFeedback-v1.0.0.zip`). Only the tag on the GitHub release matters.
-When creating a release, set the tag to match `Version` in `Directory.Build.props` (e.g. `v1.0.0`).
+If a newer release exists, a message box suggests downloading it. The check compares the **release tag** (e.g. `v1.0.1`) against the built assembly version.
+**Zip filenames do not need to match** – use any names you like (e.g. `EDForceFeedback-v1.0.1.zip`). Only the tag on the GitHub release matters.
+When creating a release, set the tag to match `Version` in `Directory.Build.props` (e.g. `v1.0.1`).
 
 1. Install [.NET SDK](https://dotnet.microsoft.com/download) 6.0 or later.
 2. Restore and build:

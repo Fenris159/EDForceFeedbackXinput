@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 namespace Journals
@@ -83,7 +84,7 @@ namespace Journals
                 }
             }
 
-            eliteAPI = testApi ?? new EliteAPI.EliteDangerousApi();
+            eliteAPI = testApi ?? CreateEliteDangerousApi(settings);
 
             // Journal events -> Status mappings (v5 uses EliteAPI.Events.Game types)
             eliteAPI.On<EliteAPI.Events.Game.DockedEvent>(e => FindEffect("Status.Docked:True"));
@@ -104,9 +105,110 @@ namespace Journals
             });
 
             if (testApi == null)
-                eliteAPI.Start();
+            {
+                try
+                {
+                    eliteAPI.Start();
+                }
+                catch (DirectoryNotFoundException ex)
+                {
+                    logger.LogError(ex, "EliteAPI could not start because a watched Elite Dangerous directory was not found.");
+                    throw;
+                }
+            }
             return Task.CompletedTask;
         }
+
+        private EliteAPI.EliteDangerousApi CreateEliteDangerousApi(Settings settings)
+        {
+            var journalDirectory = GetEliteDangerousJournalDirectory(settings?.JournalDirectory);
+            var bindingsDirectory = GetEliteDangerousBindingsDirectory(settings?.BindingsDirectory);
+
+            if (journalDirectory != null)
+                logger.LogInformation("Using Elite Dangerous journal directory: {JournalDirectory}", journalDirectory.FullName);
+            else
+                logger.LogError("Elite Dangerous journal directory was not found. Set JournalDirectory in settings.json if your Saved Games folder is redirected.");
+
+            if (bindingsDirectory != null)
+                logger.LogInformation("Using Elite Dangerous bindings directory: {BindingsDirectory}", bindingsDirectory.FullName);
+            else
+                logger.LogWarning("Elite Dangerous bindings directory was not found. Keybinding events will be unavailable.");
+
+            return new EliteAPI.EliteDangerousApi(journalDirectory, bindingsDirectory);
+        }
+
+        private static DirectoryInfo GetEliteDangerousJournalDirectory(string configuredPath)
+        {
+            var configuredDirectory = GetExistingDirectory(configuredPath);
+            if (configuredDirectory != null)
+                return configuredDirectory;
+
+            var savedGames = GetKnownFolderPath(KnownFolderSavedGames);
+            var savedGamesJournalPath = string.IsNullOrWhiteSpace(savedGames)
+                ? null
+                : Path.Combine(savedGames, "Frontier Developments", "Elite Dangerous");
+            var savedGamesJournalDirectory = GetExistingDirectory(savedGamesJournalPath);
+            if (savedGamesJournalDirectory != null)
+                return savedGamesJournalDirectory;
+
+            var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (string.IsNullOrWhiteSpace(userProfile))
+                userProfile = Environment.GetEnvironmentVariable("USERPROFILE");
+
+            if (string.IsNullOrWhiteSpace(userProfile))
+                return null;
+
+            var path = Path.Combine(userProfile, "Saved Games", "Frontier Developments", "Elite Dangerous");
+            return GetExistingDirectory(path);
+        }
+
+        private static DirectoryInfo GetEliteDangerousBindingsDirectory(string configuredPath)
+        {
+            var configuredDirectory = GetExistingDirectory(configuredPath);
+            if (configuredDirectory != null)
+                return configuredDirectory;
+
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (string.IsNullOrWhiteSpace(localAppData))
+                return null;
+
+            var path = Path.Combine(localAppData, "Frontier Developments", "Elite Dangerous", "Options", "Bindings");
+            return GetExistingDirectory(path);
+        }
+
+        private static DirectoryInfo GetExistingDirectory(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return null;
+
+            var expandedPath = Environment.ExpandEnvironmentVariables(path);
+            return Directory.Exists(expandedPath) ? new DirectoryInfo(expandedPath) : null;
+        }
+
+        private static string GetKnownFolderPath(Guid knownFolderId)
+        {
+            IntPtr pathPointer = IntPtr.Zero;
+            try
+            {
+                return SHGetKnownFolderPath(ref knownFolderId, 0, IntPtr.Zero, out pathPointer) == 0
+                    ? Marshal.PtrToStringUni(pathPointer)
+                    : null;
+            }
+            catch
+            {
+                return null;
+            }
+            finally
+            {
+                if (pathPointer != IntPtr.Zero)
+                    Marshal.FreeCoTaskMem(pathPointer);
+            }
+        }
+
+        private static readonly Guid KnownFolderSavedGames = new Guid("4C5C32FF-BB9D-43B0-B5B4-2D72E54EAAA4");
+
+        [DllImport("shell32.dll")]
+        private static extern int SHGetKnownFolderPath(ref Guid rfid, uint dwFlags, IntPtr hToken, out IntPtr ppszPath);
 
         /// <summary>
         /// For testing: invoke a single event by JSON. Only valid when initialized with a test API (no file watchers).

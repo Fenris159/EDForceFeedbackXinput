@@ -8,6 +8,12 @@ namespace EDForceFeedbackSettingsEditor
         [JsonProperty("KnownWorkingDevices")]
         public Dictionary<string, string> KnownWorkingDevices { get; set; }
 
+        [JsonProperty("JournalDirectory")]
+        public string JournalDirectory { get; set; }
+
+        [JsonProperty("BindingsDirectory")]
+        public string BindingsDirectory { get; set; }
+
         [JsonProperty("ForceFileRumble")]
         public Dictionary<string, ForceFileRumbleEntry> ForceFileRumble { get; set; }
 

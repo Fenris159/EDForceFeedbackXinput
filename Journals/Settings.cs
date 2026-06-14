@@ -7,6 +7,18 @@ namespace Journals
         public List<Device> Devices { get; set; }
 
         /// <summary>
+        /// Optional. Overrides the Elite Dangerous journal directory.
+        /// Defaults to the Windows Saved Games folder for the current user.
+        /// </summary>
+        public string JournalDirectory { get; set; }
+
+        /// <summary>
+        /// Optional. Overrides the Elite Dangerous key bindings directory.
+        /// Defaults to %LocalAppData%\Frontier Developments\Elite Dangerous\Options\Bindings.
+        /// </summary>
+        public string BindingsDirectory { get; set; }
+
+        /// <summary>
         /// Optional. Overrides default rumble (Left/Right 0.0-1.0) per force file for XInput devices.
         /// Key is force file name (e.g. "Dock.ffe", "HullDamage.ffe"). Applied when no per-event override.
         /// </summary>
