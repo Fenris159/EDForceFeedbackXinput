@@ -2,13 +2,18 @@
 
 [![CI](https://github.com/Fenris159/EDForceFeedbackXinput/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Fenris159/EDForceFeedbackXinput/actions/workflows/ci.yml)
 [![Build release](https://github.com/Fenris159/EDForceFeedbackXinput/actions/workflows/release.yml/badge.svg)](https://github.com/Fenris159/EDForceFeedbackXinput/actions/workflows/release.yml)
+[![Dependency Review](https://github.com/Fenris159/EDForceFeedbackXinput/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/Fenris159/EDForceFeedbackXinput/actions/workflows/dependency-review.yml)
 [![GitHub release](https://img.shields.io/github/v/release/Fenris159/EDForceFeedbackXinput?style=flat&logo=github&label=release)](https://github.com/Fenris159/EDForceFeedbackXinput/releases/latest)
 [![License: MIT](https://img.shields.io/github/license/Fenris159/EDForceFeedbackXinput?style=flat&logo=github&label=license)](https://github.com/Fenris159/EDForceFeedbackXinput/blob/master/LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/Fenris159/EDForceFeedbackXinput?style=flat&logo=github&label=stars)](https://github.com/Fenris159/EDForceFeedbackXinput/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/Fenris159/EDForceFeedbackXinput?style=flat&logo=github&label=issues)](https://github.com/Fenris159/EDForceFeedbackXinput/issues)
 [![GitHub all releases](https://img.shields.io/github/downloads/Fenris159/EDForceFeedbackXinput/total?style=flat&logo=github&label=downloads&cacheSeconds=600)](https://github.com/Fenris159/EDForceFeedbackXinput/releases)
 [![Windows 10/11](https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4?style=flat&logo=windows&logoColor=white)](https://github.com/Fenris159/EDForceFeedbackXinput#requirements)
+[![C#](https://img.shields.io/badge/C%23-.NET%20Framework%204.8-512BD4?style=flat&logo=csharp&logoColor=white)](https://learn.microsoft.com/dotnet/csharp/)
+[![C++/CLI](https://img.shields.io/badge/C%2B%2B%2FCLI-GameInput%20wrapper-00599C?style=flat&logo=cplusplus&logoColor=white)](GameInputWrapper/README.md)
 [![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512BD4?style=flat&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/download/dotnet-framework/net48)
+[![x64](https://img.shields.io/badge/platform-x64-lightgrey?style=flat)](EDForceFeedback.sln)
+[![Visual Studio 2022](https://img.shields.io/badge/build-Visual%20Studio%202022-5C2D91?style=flat&logo=visualstudio&logoColor=white)](README.md#building-from-source)
 [![GameInput](https://img.shields.io/badge/GameInput-supported-107C10?style=flat&logo=xbox&logoColor=white)](https://aka.ms/gameinput)
 [![EliteAPI v5.0.8](https://img.shields.io/badge/EliteAPI-v5.0.8-FF7F00?style=flat)](https://github.com/Somfic/EliteAPI)
 

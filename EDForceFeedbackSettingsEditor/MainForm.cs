@@ -87,6 +87,9 @@ namespace EDForceFeedbackSettingsEditor
         {
             string json = File.ReadAllText(_settingsPath);
             _settings = JsonConvert.DeserializeObject<SettingsModel>(json);
+            if (_settings != null && _settings.ForceFileRumble == null)
+                _settings.ForceFileRumble = new Dictionary<string, ForceFileRumbleEntry>();
+
             if (_settings?.Devices == null || _settings.Devices.Count == 0)
             {
                 MessageBox.Show("No devices or events found in settings.", "Invalid Settings", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -96,6 +99,9 @@ namespace EDForceFeedbackSettingsEditor
 
         private void BuildEventRows()
         {
+            if (_settings?.Devices == null)
+                return;
+
             var firstDevice = _settings.Devices.FirstOrDefault(d => d.StatusEvents?.Count > 0);
             if (firstDevice?.StatusEvents == null) return;
 
@@ -134,6 +140,9 @@ namespace EDForceFeedbackSettingsEditor
         {
             try
             {
+                if (_settings?.Devices == null)
+                    return;
+
                 foreach (var row in _rows)
                 {
                     string forceFile = row.ForceFile;

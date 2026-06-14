@@ -8,7 +8,7 @@
 name: Build release
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 on:
   workflow_dispatch:
@@ -136,6 +136,17 @@ jobs:
           }
           if (-not (Test-Path (Join-Path $testOut "TestForceFeedback.exe"))) {
             Write-Error "Missing TestForceFeedback.exe in $testOut"
+          }
+          foreach ($required in @("EDForceFeedbackSettingsEditor.exe", "GameInputWrapper.dll")) {
+            if (-not (Test-Path (Join-Path $appOut $required))) {
+              Write-Error "Missing $required in $appOut"
+            }
+            if (-not (Test-Path (Join-Path $testOut $required))) {
+              Write-Error "Missing $required in $testOut"
+            }
+          }
+          if (-not (Test-Path (Join-Path $appOut "redist\GameInputRedist.msi"))) {
+            Write-Error "Missing redist\GameInputRedist.msi in $appOut"
           }
 
           Compress-Archive -Path (Join-Path $appOut "*") -DestinationPath (Join-Path $releaseDir "EDForceFeedback-v$version.zip") -Force
